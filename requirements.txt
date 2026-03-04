@@ -1,0 +1,2 @@
+# docker_agent: container execution
+docker>=7.0.0

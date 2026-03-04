@@ -1,0 +1,20 @@
+{
+  "root_cause": {
+    "evidence": [
+      "string",
+      "..."
+    ],
+    "why": "string"
+  },
+  "execution_plan": {
+    "action": "patch_script | retry | need_human",
+    "patches": [
+      {
+        "op": "replace_line | append_block | prepend_block",
+        "target": "install_script | run_script",
+        "match": "string",
+        "content": "string"
+      }
+    ]
+  }
+}
