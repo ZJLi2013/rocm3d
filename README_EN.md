@@ -62,13 +62,16 @@ The following repos have been verified on AMD MI300X with ROCm:
 
 ## Core Replacement Table (highlights)
 
-| Library | ROCm Solution |
-|---------|--------------|
-| flash-attn (ROCm 6.x) | `pip install flash-attn --index-url=https://pypi.amd.com/simple` (Triton) |
-| flash-attn (ROCm 7.x) | `pip install aiter` — AITER CK backend, **~25% faster** |
-| xformers | `pip install xformers --index-url https://download.pytorch.org/whl/rocm6.4` |
-| gsplat | `pip install gsplat --index-url=https://pypi.amd.com/simple` |
-| pytorch3d | Pre-built ROCm wheel |
+ROCm 6.4 is the default base (most libs have pre-built wheels). ROCm 7.x only for flash-attn CK acceleration.
+
+| Library | ROCm Solution | ROCm Version |
+|---------|--------------|-------------|
+| flash-attn | `pip install flash-attn --index-url=https://pypi.amd.com/simple` (FA2 Triton) | 6.x |
+| flash-attn | `pip install aiter` — AITER CK backend, **~25% faster** | **7.x** |
+| flash-attn | `pip install aiter` — AITER Triton v3 (auto-selected on 6.x) | 6.x |
+| xformers | `pip install xformers --index-url https://download.pytorch.org/whl/rocm6.4` | 6.4 only |
+| gsplat | `pip install gsplat --index-url=https://pypi.amd.com/simple` | 6.4 / 7.0 |
+| pytorch3d | Pre-built ROCm wheel | 6.4 only |
 
 See [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) for the full table, AITER integration patterns, and troubleshooting guide.
 
