@@ -12,7 +12,6 @@ build/
 # Env / secrets
 .env
 .env.*
-!.env.example
 
 # Editor
 .vscode/
@@ -20,15 +19,6 @@ build/
 *.swp
 *.swo
 
-# Test / coverage
-.pytest_cache/
-.coverage
-htmlcov/
-
 # OS
 .DS_Store
 Thumbs.db
-
-# Large output files (keep structure, not content)
-samples/auto_gen/test_output/*.json
-samples/test_output/*.json

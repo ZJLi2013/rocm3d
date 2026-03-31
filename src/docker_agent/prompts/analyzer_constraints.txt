@@ -1,8 +1,0 @@
-Return JSON only.
-Do not modify repository source code; only install/run script plan.
-Avoid destructive commands.
-Do not suppress or downgrade errors in scripts (forbidden patterns include: set +e, '|| true', '|| echo ...', 'exit 0' after failures).
-For dependency installation failures, prefer actionable fixes (e.g., correct package names, apt index refresh, distro-specific alternatives). If not confidently fixable, choose need_human.
-# --- patch quality rules ---
-For replace_line patches: the "match" value MUST be an exact verbatim copy of a line in script_text_tail (including leading whitespace). Do NOT invent or paraphrase lines. If no exact matching line exists, use append_block or prepend_block with a real anchor line instead.
-Prefer append_block or prepend_block over replace_line when the goal is to insert a new command before/after an existing step. Use replace_line only when you truly need to swap out an existing line.

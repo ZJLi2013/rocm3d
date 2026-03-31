@@ -1,146 +1,75 @@
 # rocm3d-autorun
 
-Automated verification and skill-based migration of ML repos to the ROCm GPU platform.
+Cursor agent skill for porting ML repos (3D generation, reconstruction, world models, video generation, etc.) to AMD ROCm.
 
-Given a GitHub repo and a base ROCm Docker image, `rocm3d-autorun` automatically:
+Provides a canonical **ROCm library replacement table** — when you encounter a CUDA-dependent library
+in a repo's dependencies, the skill tells Cursor exactly how to install the ROCm equivalent.
 
-1. **Generates** an `install.sh` + `run.sh` for the target repo (via `docs/skills/`)
-2. **Executes** install + run inside Docker, capturing structured JSON output
-3. **Analyzes** failures with an LLM and auto-patches the install script (retry loop)
-4. **Accumulates** fix patterns as reusable experience (`docs/skills/`, `prompts/analyzer_fewshot.md`)
+## Usage
 
-## Supported domains
-
-| Domain | Status |
-|--------|--------|
-| 3D Generation & Reconstruction | ✅ Active (mvinverse, Anything-3D, any4d, dimensionx, flare, recammaster) |
-| 3D Gaussian Splatting acceleration libs | 🔄 Planned |
-| World Model | 🔄 Planned |
-| VLA (Vision-Language-Action) | 🔄 Planned |
-
-## Quick Start
-
-### 1. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Configure LLM provider
-
-```bash
-cp .env.example .env
-# Edit .env — pick one of: openai / anthropic / openai_compat (vLLM, AMD gateway, etc.)
-```
-
-### 3. Generate install script for a repo
-
-```bash
-# In Cursor / Claude Code — invoke the skill:
-# "给 https://github.com/<owner>/<repo> 生成 ROCm install 脚本"
-# Output: samples/auto_gen/<repo>_install.sh
-```
-
-### 4. Run install + auto-patch loop on a remote GPU node
-
-```bash
-git pull
-PYTHONPATH=./src python -m docker_agent \
-  --repo_url https://github.com/<owner>/<repo> \
-  --base-image rocm/pytorch:latest \
-  --install-script samples/auto_gen/<repo>_install.sh \
-  --auto-patch-on-fail \
-  --max-auto-patch-retries 3 \
-  -o samples/auto_gen/test_output/<repo>.json
-```
-
-### 5. Batch install verification
-
-```bash
-bash samples/run_all_install_tests.sh
-```
-
-## LLM Provider
-
-`rocm3d-autorun` uses a lightweight, **dependency-free** LLM client (`src/llms/`).  
-No LangChain or vendor SDKs required.
-
-Supported providers — set via `.env`:
-
-| `LLM_PROVIDER` | Use case | Auth |
-|---|---|---|
-| `openai` | OpenAI API | `LLM_API_KEY=sk-...` |
-| `anthropic` | Anthropic Claude | `LLM_API_KEY=sk-ant-...` |
-| `openai_compat` | AMD Gateway, vLLM, Ollama, Azure | `LLM_API_KEY` + `LLM_BASE_URL` |
-
-See `.env.example` for complete configuration examples.
-
-## Architecture
+In Cursor, invoke the skill:
 
 ```
-User: repo URL
-      ↓
-┌──────────────────────────────────────────────────┐
-│  skill-1: rocm-install-script-generator          │
-│  docs/skills/rocm-install-script-generator/      │
-│  Consumer: Cursor / Claude Code agent            │
-│                                                  │
-│  Reads repo README + requirements,               │
-│  assembles install.sh + run.sh per Block A–H.    │
-└──────────────────────────────────────────────────┘
-      ↓ script failure
-┌──────────────────────────────────────────────────┐
-│  auto-patcher: llm_log_analyzer                  │
-│  src/docker_agent/llm_log_analyzer.py            │
-│  Consumer: docker_agent orchestrator (auto)      │
-│                                                  │
-│  Failure analysis + script patch:                │
-│  · analyzer_fewshot.md: error → patch examples  │
-│  · analyzer_constraints.txt: patch rules         │
-└──────────────────────────────────────────────────┘
+"使用 rocm-lib-compat skill，给 https://github.com/<owner>/<repo> 生成 ROCm install 脚本"
 ```
 
-**Experience accumulation:**
+## Supported Repos
 
-| Type | Location | Consumer |
-|------|----------|----------|
-| New ROCm compat rules | `docs/skills/rocm-install-script-generator/SKILL.md` | Agent (script gen) |
-| Error → patch examples | `src/docker_agent/prompts/analyzer_fewshot.md` | `llm_log_analyzer` |
+The following repos have been verified on AMD MI300X with ROCm:
 
-## Directory Layout
+### 3D Generation & Reconstruction
+
+| Repo | Domain | Key ROCm Libs | Status |
+|------|--------|---------------|--------|
+| [wgsxm/PartCrafter](https://github.com/wgsxm/PartCrafter) | Part-aware 3D generation | pytorch3d | ✅ Verified |
+| [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D reconstruction | gsplat | ✅ Verified |
+| [openai/shap-e](https://github.com/openai/shap-e) | Text/image to 3D | — | ✅ Verified |
+| [naver/dust3r](https://github.com/naver/dust3r) | Dense stereo reconstruction | croco (ext build) | ✅ Verified |
+| [facebookresearch/fast3r](https://github.com/facebookresearch/fast3r) | Fast 3D reconstruction | croco (ext build) | ✅ Verified |
+| [nv-tlabs/Difix3D](https://github.com/nv-tlabs/Difix3D) | 3D diffusion fixing | xformers | ✅ Verified |
+| [facebookresearch/vggt](https://github.com/facebookresearch/vggt) | Visual grounding | — | ✅ Verified |
+| [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) | Monocular depth + 3DGS | xformers, gsplat | ✅ Verified |
+| [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS (ROCm fork) | diff-gaussian-rasterization | ✅ Verified |
+| [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | Map reconstruction | — | ✅ Verified |
+
+### 3D/4D Generation (AI-generated scripts)
+
+| Repo | Domain | Key ROCm Libs | Status |
+|------|--------|---------------|--------|
+| [fudan-zvg/4d-gaussian-splatting](https://github.com/fudan-zvg/4d-gaussian-splatting) | 4D Gaussians | diff-gaussian-rasterization, simple-knn | ✅ Script generated |
+| [VITA-Group/Anything-3D](https://github.com/VITA-Group/Anything-3D) | Anything to 3D | — | ✅ Script generated |
+| [any4d](https://github.com/) | 4D generation | — | ✅ Script generated |
+| [DimensionX](https://github.com/) | Multi-dim generation | — | ✅ Script generated |
+| [nv-tlabs/FLARE](https://github.com/nv-tlabs/FLARE) | Face generation | pytorch3d | ✅ Script generated |
+| [Gen3C](https://github.com/) | 3D-consistent generation | — | ✅ Script generated |
+| [mv-inverse](https://github.com/) | Multi-view inverse | — | ✅ Script generated |
+| [jiangzhongshi/RecamMaster](https://github.com/jiangzhongshi/RecamMaster) | Camera re-rendering | — | ✅ Script generated |
+
+### Video Generation / World Models
+
+| Repo | Domain | Key ROCm Libs | Status |
+|------|--------|---------------|--------|
+| [SkyworkAI/Matrix-Game](https://github.com/SkyworkAI/Matrix-Game) | Video world model | flash-attn → **AITER CK** | ✅ Verified (PR ready) |
+
+## Project Structure
 
 ```
-src/docker_agent/     Core execution & analysis (install → run → LLM patch loop)
-src/llms/             Lightweight LLM client (zero deps, multi-provider)
-samples/auto_gen/     AI-generated install/run scripts + test outputs
-samples/manually_scripts/  Hand-written reference scripts
-docs/skills/          Agent skills for script generation
-tools/                Offline analysis helpers
-tests/                Unit + integration tests
+.cursor/skills/rocm-lib-compat/
+  SKILL.md       # Core skill — ROCm lib replacement table + AITER FA3
 ```
 
-## Requirements
+## Core Replacement Table (highlights)
 
-| Dependency | Purpose | Where needed |
-|---|---|---|
-| Python 3.10+ | Run docker_agent | Remote GPU node |
-| Docker + ROCm driver | Container execution | Remote GPU node |
-| `pip install -r requirements.txt` | docker-py | Remote GPU node |
-| LLM API key (any provider) | Failure analysis + auto-patch | Optional; falls back to `need_human` |
+| Library | ROCm Solution |
+|---------|--------------|
+| flash-attn (ROCm 6.x) | `pip install flash-attn --index-url=https://pypi.amd.com/simple` (Triton) |
+| flash-attn (ROCm 7.x) | `pip install aiter` — AITER CK backend, **~25% faster** |
+| xformers | `pip install xformers --index-url https://download.pytorch.org/whl/rocm6.4` |
+| gsplat | `pip install gsplat --index-url=https://pypi.amd.com/simple` |
+| pytorch3d | Pre-built ROCm wheel |
 
-## Current GPU Nodes (MI300)
-
-See project README or team docs for active node hostnames.
-
-## Roadmap
-
-See [Roadmap](README.md#roadmap) for upcoming domain support and planned phases.
-
----
+See [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) for the full table, AITER integration patterns, and troubleshooting guide.
 
 ## Contributing
 
-1. Fork the repo and create a feature branch.
-2. For new ROCm compat rules: update `docs/skills/rocm-install-script-generator/SKILL.md`.
-3. For new error→patch patterns: append to `src/docker_agent/prompts/analyzer_fewshot.md`.
-4. Submit a PR with test evidence (JSON output from `docker_agent`).
+For new ROCm library mappings: update `.cursor/skills/rocm-lib-compat/SKILL.md`
