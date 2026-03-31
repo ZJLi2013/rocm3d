@@ -1,75 +1,76 @@
 # rocm3d-autorun
 
-Cursor agent skill for porting ML repos (3D generation, reconstruction, world models, video generation, etc.) to AMD ROCm.
+**中文** | [English](README_EN.md)
 
-Provides a canonical **ROCm library replacement table** — when you encounter a CUDA-dependent library
-in a repo's dependencies, the skill tells Cursor exactly how to install the ROCm equivalent.
+Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模型、视频生成等）移植到 AMD ROCm 平台。
 
-## Usage
+核心价值：提供一张 **ROCm 库替换表** — 当 repo 依赖中出现 CUDA 专用库时，告诉 Cursor 如何安装对应的 ROCm 兼容版本。
 
-In Cursor, invoke the skill:
+## 使用方式
+
+在 Cursor 中调用 skill：
 
 ```
 "使用 rocm-lib-compat skill，给 https://github.com/<owner>/<repo> 生成 ROCm install 脚本"
 ```
 
-## Supported Repos
+## 已支持的 Repo
 
-The following repos have been verified on AMD MI300X with ROCm:
+以下 repo 已在 AMD MI300X + ROCm 上验证通过：
 
-### 3D Generation & Reconstruction
+### 3D 生成与重建
 
-| Repo | Domain | Key ROCm Libs | Status |
-|------|--------|---------------|--------|
-| [wgsxm/PartCrafter](https://github.com/wgsxm/PartCrafter) | Part-aware 3D generation | pytorch3d | ✅ Verified |
-| [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D reconstruction | gsplat | ✅ Verified |
-| [openai/shap-e](https://github.com/openai/shap-e) | Text/image to 3D | — | ✅ Verified |
-| [naver/dust3r](https://github.com/naver/dust3r) | Dense stereo reconstruction | croco (ext build) | ✅ Verified |
-| [facebookresearch/fast3r](https://github.com/facebookresearch/fast3r) | Fast 3D reconstruction | croco (ext build) | ✅ Verified |
-| [nv-tlabs/Difix3D](https://github.com/nv-tlabs/Difix3D) | 3D diffusion fixing | xformers | ✅ Verified |
-| [facebookresearch/vggt](https://github.com/facebookresearch/vggt) | Visual grounding | — | ✅ Verified |
-| [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) | Monocular depth + 3DGS | xformers, gsplat | ✅ Verified |
-| [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS (ROCm fork) | diff-gaussian-rasterization | ✅ Verified |
-| [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | Map reconstruction | — | ✅ Verified |
+| Repo | 领域 | 关键 ROCm 库 | 状态 |
+|------|------|-------------|------|
+| [wgsxm/PartCrafter](https://github.com/wgsxm/PartCrafter) | 部件感知 3D 生成 | pytorch3d | ✅ 已验证 |
+| [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D 重建 | gsplat | ✅ 已验证 |
+| [openai/shap-e](https://github.com/openai/shap-e) | 文本/图像转 3D | — | ✅ 已验证 |
+| [naver/dust3r](https://github.com/naver/dust3r) | 稠密立体重建 | croco (ext build) | ✅ 已验证 |
+| [facebookresearch/fast3r](https://github.com/facebookresearch/fast3r) | 快速 3D 重建 | croco (ext build) | ✅ 已验证 |
+| [nv-tlabs/Difix3D](https://github.com/nv-tlabs/Difix3D) | 3D 扩散修复 | xformers | ✅ 已验证 |
+| [facebookresearch/vggt](https://github.com/facebookresearch/vggt) | 视觉定位 | — | ✅ 已验证 |
+| [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) | 单目深度 + 3DGS | xformers, gsplat | ✅ 已验证 |
+| [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS（ROCm 分支） | diff-gaussian-rasterization | ✅ 已验证 |
+| [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | 地图重建 | — | ✅ 已验证 |
 
-### 3D/4D Generation (AI-generated scripts)
+### 3D/4D 生成（AI 生成脚本）
 
-| Repo | Domain | Key ROCm Libs | Status |
-|------|--------|---------------|--------|
-| [fudan-zvg/4d-gaussian-splatting](https://github.com/fudan-zvg/4d-gaussian-splatting) | 4D Gaussians | diff-gaussian-rasterization, simple-knn | ✅ Script generated |
-| [VITA-Group/Anything-3D](https://github.com/VITA-Group/Anything-3D) | Anything to 3D | — | ✅ Script generated |
-| [any4d](https://github.com/) | 4D generation | — | ✅ Script generated |
-| [DimensionX](https://github.com/) | Multi-dim generation | — | ✅ Script generated |
-| [nv-tlabs/FLARE](https://github.com/nv-tlabs/FLARE) | Face generation | pytorch3d | ✅ Script generated |
-| [Gen3C](https://github.com/) | 3D-consistent generation | — | ✅ Script generated |
-| [mv-inverse](https://github.com/) | Multi-view inverse | — | ✅ Script generated |
-| [jiangzhongshi/RecamMaster](https://github.com/jiangzhongshi/RecamMaster) | Camera re-rendering | — | ✅ Script generated |
+| Repo | 领域 | 关键 ROCm 库 | 状态 |
+|------|------|-------------|------|
+| [fudan-zvg/4d-gaussian-splatting](https://github.com/fudan-zvg/4d-gaussian-splatting) | 4D 高斯 | diff-gaussian-rasterization, simple-knn | ✅ 脚本生成 |
+| [VITA-Group/Anything-3D](https://github.com/VITA-Group/Anything-3D) | 万物转 3D | — | ✅ 脚本生成 |
+| [any4d](https://github.com/) | 4D 生成 | — | ✅ 脚本生成 |
+| [DimensionX](https://github.com/) | 多维生成 | — | ✅ 脚本生成 |
+| [nv-tlabs/FLARE](https://github.com/nv-tlabs/FLARE) | 人脸生成 | pytorch3d | ✅ 脚本生成 |
+| [Gen3C](https://github.com/) | 3D 一致性生成 | — | ✅ 脚本生成 |
+| [mv-inverse](https://github.com/) | 多视角逆向 | — | ✅ 脚本生成 |
+| [jiangzhongshi/RecamMaster](https://github.com/jiangzhongshi/RecamMaster) | 相机重渲染 | — | ✅ 脚本生成 |
 
-### Video Generation / World Models
+### 视频生成 / 世界模型
 
-| Repo | Domain | Key ROCm Libs | Status |
-|------|--------|---------------|--------|
-| [SkyworkAI/Matrix-Game](https://github.com/SkyworkAI/Matrix-Game) | Video world model | flash-attn → **AITER CK** | ✅ Verified (PR ready) |
+| Repo | 领域 | 关键 ROCm 库 | 状态 |
+|------|------|-------------|------|
+| [SkyworkAI/Matrix-Game](https://github.com/SkyworkAI/Matrix-Game) | 视频世界模型 | flash-attn → **AITER CK** | ✅ 已验证（PR ready） |
 
-## Project Structure
+## 项目结构
 
 ```
 .cursor/skills/rocm-lib-compat/
-  SKILL.md       # Core skill — ROCm lib replacement table + AITER FA3
+  SKILL.md       # 核心 skill — ROCm 库替换表 + AITER FA3
 ```
 
-## Core Replacement Table (highlights)
+## 核心替换表（摘要）
 
-| Library | ROCm Solution |
-|---------|--------------|
-| flash-attn (ROCm 6.x) | `pip install flash-attn --index-url=https://pypi.amd.com/simple` (Triton) |
-| flash-attn (ROCm 7.x) | `pip install aiter` — AITER CK backend, **~25% faster** |
+| 库 | ROCm 方案 |
+|----|----------|
+| flash-attn (ROCm 6.x) | `pip install flash-attn --index-url=https://pypi.amd.com/simple`（Triton） |
+| flash-attn (ROCm 7.x) | `pip install aiter` — AITER CK 后端，**快 ~25%** |
 | xformers | `pip install xformers --index-url https://download.pytorch.org/whl/rocm6.4` |
 | gsplat | `pip install gsplat --index-url=https://pypi.amd.com/simple` |
-| pytorch3d | Pre-built ROCm wheel |
+| pytorch3d | 预编译 ROCm wheel |
 
-See [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) for the full table, AITER integration patterns, and troubleshooting guide.
+完整替换表、AITER 集成模式和问题排查见 [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md)。
 
-## Contributing
+## 贡献
 
-For new ROCm library mappings: update `.cursor/skills/rocm-lib-compat/SKILL.md`
+新增 ROCm 库映射请更新 `.cursor/skills/rocm-lib-compat/SKILL.md`
