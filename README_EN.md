@@ -52,6 +52,24 @@ The following repos have been verified on AMD MI300X with ROCm:
 | Repo | Domain | Key ROCm Libs | Status |
 |------|--------|---------------|--------|
 | [SkyworkAI/Matrix-Game](https://github.com/SkyworkAI/Matrix-Game) | Video world model | flash-attn → **AITER CK** | ✅ Verified (PR ready) |
+| [lucas-maes/le-wm](https://github.com/lucas-maes/le-wm) | Learned world model | — (device-agnostic) | ✅ [Verified](https://github.com/lucas-maes/le-wm/issues/15) (inference + 8-GPU training) |
+| [H-EmbodVis/HyDRA](https://github.com/H-EmbodVis/HyDRA) | Hybrid-memory video world model | flash-attn (FA2 Triton) | ✅ Verified (4 videos, FA2 -19% vs SDPA) |
+| [ABU121111/DreamWorld](https://github.com/ABU121111/DreamWorld) | Video generation (Wan2.1 + VGGT) | — | ✅ Verified (2 videos, ~39min) |
+| [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | Monocular 4D geometry + motion | xformers, pytorch3d | 🔶 Likely (clean deps, env ready) |
+
+### VLA / Embodied AI
+
+| Repo | Domain | Key ROCm Libs | Status |
+|------|--------|---------------|--------|
+| [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B inference | — (pure PyTorch) | 🔶 Likely (all deps installed, no CUDA blocker) |
+
+### Partially Working (needs extra fixes)
+
+| Repo | Domain | Key ROCm Libs | Status | Blocker |
+|------|--------|---------------|--------|---------|
+| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D scene generation | pytorch3d, gsplat | 🔶 85% pass | spconv lacks ROCm GPU kernel |
+| [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D scene understanding (VLA) | flash-attn | 🔶 Env ready | Needs ScanNet dataset |
+| [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | Video → 3D reconstruction | gsplat, xformers | 🔶 In progress | tinycudann → [tiny-rocm-nn](https://github.com/ZJLi2013/tiny-rocm-nn) |
 
 ## Project Structure
 

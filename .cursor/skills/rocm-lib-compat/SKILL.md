@@ -1,6 +1,6 @@
 ---
 name: rocm-lib-compat
-version: 2.1.0
+version: 2.2.1
 author: ZJLi2013
 description: |
   ROCm library compatibility reference for porting ML repos (3D generation,
@@ -25,13 +25,19 @@ CK performance matters and the repo does NOT depend on xformers/gsplat/pytorch3d
 
 | ROCm Version | PyTorch | xformers | gsplat | pytorch3d | flash-attn | aiter |
 |:-------------|:-------:|:--------:|:------:|:---------:|:----------:|:-----:|
-| **6.4** (default) | ✅ | ✅ wheel | ✅ wheel | ✅ wheel | ✅ FA2 Triton | ✅ Triton v3 |
-| **7.0** | ✅ | ⚠️ | ✅ wheel | ❌ | — | ✅ CK + Triton |
-| **7.1** | ✅ | ⚠️ experimental | ? | ❌ | — | ✅ CK + Triton |
-| **7.2** | ✅ | ❌ no wheel | ? | ❌ | — | ✅ CK + Triton |
+| **6.4** (default) | ✅ | ✅ wheel | ✅ wheel | ✅ wheel (py3.12) | ✅ FA2 Triton | ✅ Triton v3 |
+| **7.0** | ✅ | ⚠️ | ✅ wheel | ❌ see below | — | ✅ CK + Triton |
+| **7.1** | ✅ | ⚠️ experimental | ? | ❌ see below | — | ✅ CK + Triton |
+| **7.2** | ✅ | ❌ no wheel | ? | ❌ see below | — | ✅ CK + Triton |
+
+> **pytorch3d source build pitfall (verified 2026-03-31, MI308X):**
+> `pip install "git+...pytorch3d.git" --no-build-isolation` **builds successfully**
+> (~80s) but produces a **CPU-only binary** — GPU rasterization kernels are missing
+> (`"Not compiled with GPU support"`). The pre-built wheel is the only reliable
+> path. Requires **Python 3.12 + Docker** (`rocm/pytorch:rocm6.4.3_ubuntu24.04_py3.12_pytorch_release_2.6.0`).
 
 **Decision rule:**
-- Repo uses xformers / gsplat / pytorch3d → **ROCm 6.4**
+- Repo uses xformers / gsplat / pytorch3d → **ROCm 6.4** (+ Docker py3.12 for pytorch3d)
 - Repo only uses flash-attn, want best perf → **ROCm 7.x** (AITER CK)
 - Repo only uses flash-attn, want simplicity → **ROCm 6.4** (FA2 Triton or AITER Triton v3)
 
@@ -73,7 +79,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 |---------|-------------|-------|
 | **xformers** | `pip install -U xformers==0.0.32.post2 --index-url https://download.pytorch.org/whl/rocm6.4` | ROCm 6.4 only; version must match torch |
 | **gsplat** | `pip install gsplat --index-url=https://pypi.amd.com/simple --extra-index-url https://pypi.org/simple` | ROCm 6.4 / 7.0; never source build |
-| **pytorch3d** | `pip install https://github.com/ZJLi2013/pytorch3d/releases/download/rocm6.4-py3.12/pytorch3d-0.7.9-cp312-cp312-linux_x86_64.whl` | ROCm 6.4 only; Python 3.12 |
+| **pytorch3d** | `pip install https://github.com/ZJLi2013/pytorch3d/releases/download/rocm6.4-py3.12/pytorch3d-0.7.9-cp312-cp312-linux_x86_64.whl` | ROCm 6.4 only; **Python 3.12 only; Docker recommended**; source build compiles but GPU kernels missing |
 | **triton** | `pip install triton --index-url https://download.pytorch.org/whl/rocm6.4` | Bundled with ROCm PyTorch; rarely needed |
 | **torch-geometric** | `pip install torch_geometric && pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-<VER>+<ROCM_TAG>.html` | Match torch version |
 | **diff-gaussian-rasterization** | Source build with `PYTORCH_ROCM_ARCH=gfx942` | 3DGS submodule |
