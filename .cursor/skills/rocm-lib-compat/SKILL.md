@@ -91,6 +91,13 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | **flex_gemm** | `pip install . --no-build-isolation` (hipify 自动运行) | Triton backend 全算法 ROCm ✅; [PR #18](https://github.com/JeffreyXiang/FlexGEMM/pull/18); 合并前用 fork: `pip install git+https://github.com/ZJLi2013/FlexGEMM.git@rocm` |
 | **cumesh** | `GPU_ARCHS=gfx942 pip install . --no-build-isolation` (hipify 自动运行) | 全 3 扩展 ROCm ✅; `cuda::std::plus`→`cub::Sum`, `cuda::std::tuple`→`rocprim::tuple`, Vec3f 加 `__host__`, nvcc flags 分支; fork: `pip install git+https://github.com/ZJLi2013/CuMesh.git@rocm` |
 
+**ROCm 7.2 libraries** (source build, RDNA only):
+
+| Library | ROCm Install | Notes |
+|---------|-------------|-------|
+| **nvdiffrast** | `GPU_ARCHS=gfx1201 pip install . --no-build-isolation` | **RDNA4 (gfx1201) ✅** rasterize/interpolate/antialias/texture 全 PASS; 11 处修复 (warp sync 64-bit mask, `__lanemask_le/ge`, `__builtin_amdgcn_rcp_f32`, PyTorch 2.9 API); fork: [ZJLi2013/nvdiffrast@rocm](https://github.com/ZJLi2013/nvdiffrast/tree/rocm); **CDNA3 (gfx942) ❌** cudaraster 硬编码 warp32 (114 处), wave64 适配预估 2-4 周 |
+| **nvdiffrec** | 同 nvdiffrast | RDNA4 ✅ (跟随 nvdiffrast fork); CDNA3 ❌ (同上 cudaraster wave64 blocker) |
+
 **Flash Attention** (tiered strategy):
 
 | Backend | ROCm | Install | Perf | 验证 |
@@ -179,8 +186,6 @@ Same API as `flash_attn.flash_attn_varlen_func`.
 |---------|--------|------------|----------|
 | **cuda-python** | NVIDIA CUDA Python bindings | Remove if not in critical path | — |
 | **spconv-cu\*** | CUDA-only sparse convolution (cumm/pccm 生成 CUDA kernel) | 迁移中: [ZJLi2013/spconv_rocm](https://github.com/ZJLi2013/spconv_rocm) hipBLAS 路线 | 2026-03 |
-| **nvdiffrast** | CUDA differentiable rasterizer | **hipify 可行** (ROCm 6.2+): warp sync 函数已支持, `__lanemask_lt()` 可用, 仅 `__frcp_rz` 需手动替换; 社区已确认 ([ROCm#3471](https://github.com/ROCm/ROCm/issues/3471)); OpenGL 后端依赖 NVIDIA EGL 不可用 | 2024-08 gfx1100 |
-| **nvdiffrec** | Depends on nvdiffrast | 同 nvdiffrast hipify 路线 | — |
 | **tinycudann** | CUDA hash grid + MLP | [tiny-rocm-nn](https://github.com/ZJLi2013/tiny-rocm-nn): 编译+forward ✅, backward split_k bug 已修复 (`6f32935`), video_to_world Stage 0-1b PASS, 全 pipeline 待重跑 | 2026-04-01 MI308X |
 | **cupy-cuda12x** | NVIDIA CUDA Python array | Skip or `cupy-rocm-5-0` (limited, old ROCm) | — |
 | **auto_gptq** | CUDA quantization | Skip quantization or use GGUF | — |
