@@ -74,7 +74,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 ### Core Replacement Table
 
-**ROCm 6.4 libraries** (pre-built wheels, no source build):
+**ROCm 6.4+ libraries** (pre-built wheels or source build on ROCm 6.4+):
 
 | Library | ROCm Install | Notes |
 |---------|-------------|-------|
@@ -90,13 +90,8 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | **custom_rasterizer** (Hunyuan3D) | `pip install -e . --no-build-isolation` | Pure PyTorch C++ ext, no raw CUDA kernel ✅ |
 | **flex_gemm** | `pip install . --no-build-isolation` (hipify 自动运行) | Triton backend 全算法 ROCm ✅; [PR #18](https://github.com/JeffreyXiang/FlexGEMM/pull/18); 合并前用 fork: `pip install git+https://github.com/ZJLi2013/FlexGEMM.git@rocm` |
 | **cumesh** | `GPU_ARCHS=gfx942 pip install . --no-build-isolation` (hipify 自动运行) | 全 3 扩展 ROCm ✅; `cuda::std::plus`→`cub::Sum`, `cuda::std::tuple`→`rocprim::tuple`, Vec3f 加 `__host__`, nvcc flags 分支; fork: `pip install git+https://github.com/ZJLi2013/CuMesh.git@rocm` |
-
-**ROCm 7.2 libraries** (source build, RDNA only):
-
-| Library | ROCm Install | Notes |
-|---------|-------------|-------|
-| **nvdiffrast** | `GPU_ARCHS=gfx1201 pip install . --no-build-isolation` | **RDNA4 (gfx1201) ✅** rasterize/interpolate/antialias/texture 全 PASS; 11 处修复 (warp sync 64-bit mask, `__lanemask_le/ge`, `__builtin_amdgcn_rcp_f32`, PyTorch 2.9 API); fork: [ZJLi2013/nvdiffrast@rocm](https://github.com/ZJLi2013/nvdiffrast/tree/rocm); **CDNA3 (gfx942) ❌** cudaraster 硬编码 warp32 (114 处), wave64 适配预估 2-4 周 |
-| **nvdiffrec** | 同 nvdiffrast | RDNA4 ✅ (跟随 nvdiffrast fork); CDNA3 ❌ (同上 cudaraster wave64 blocker) |
+| **nvdiffrast** | `GPU_ARCHS=<arch> pip install git+https://github.com/ZJLi2013/nvdiffrast.git@rocm --no-build-isolation` | **ROCm 6.4 + 7.2 均验证**; RDNA3/4 (gfx1100/gfx1201) wave32 ✅ + CDNA3 (gfx942) wave64 半wavefront模拟 ✅; cudaraster 全 4 阶段 + interpolate + antialias grad + texture 全 PASS |
+| **nvdiffrec** | 同 nvdiffrast | ROCm 6.4 + 7.2; RDNA4 ✅ CDNA3 ✅ |
 
 **Flash Attention** (tiered strategy):
 
@@ -255,7 +250,7 @@ python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is
 | Depth-Anything-3 | Mono depth + 3DGS | xformers, gsplat | ✅ |
 | Matrix-Game | Video world model | flash-attn→AITER CK | ✅ |
 | **Hunyuan3D-2.1** | Image-to-3D + PBR | — (纯 PyTorch, AOTriton FA) | ✅ shape gen (60s, 344K verts, MI300X) |
-| **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅, flex_gemm ✅ ([PR #18](https://github.com/JeffreyXiang/FlexGEMM/pull/18)), cumesh ✅ (fork: `ZJLi2013/CuMesh@rocm`) | ⚠️ 集成测试待验证 |
+| **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅, flex_gemm ✅ ([PR #18](https://github.com/JeffreyXiang/FlexGEMM/pull/18)), cumesh ✅ (`ZJLi2013/CuMesh@rocm`), nvdiffrast ✅ (`ZJLi2013/nvdiffrast@rocm`) | 🔶 集成测试进行中 |
 | **video_to_world** | Video→3D recon | tinycudann→tiny-rocm-nn, gsplat, xformers | 🔶 Stage 0-1b PASS, split_k fix 待重跑 |
 
 ---
