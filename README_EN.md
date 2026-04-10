@@ -1,4 +1,4 @@
-# rocm3d-autorun
+# rocm3d
 
 [中文](README.md) | **English**
 
@@ -23,6 +23,7 @@ The following repos have been verified on AMD MI300X with ROCm:
 
 | Repo | Domain | Key ROCm Libs | Status |
 |------|--------|---------------|--------|
+| [Tencent/Hunyuan3D-2](https://github.com/Tencent/Hunyuan3D-2) | Image-to-3D + PBR | — (pure PyTorch, AOTriton FA) | ✅ Verified |
 | [wgsxm/PartCrafter](https://github.com/wgsxm/PartCrafter) | Part-aware 3D generation | pytorch3d | ✅ Verified |
 | [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D reconstruction | gsplat | ✅ Verified |
 | [openai/shap-e](https://github.com/openai/shap-e) | Text/image to 3D | — | ✅ Verified |
@@ -33,6 +34,7 @@ The following repos have been verified on AMD MI300X with ROCm:
 | [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) | Monocular depth + 3DGS | xformers, gsplat | ✅ Verified |
 | [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS (ROCm fork) | diff-gaussian-rasterization | ✅ Verified |
 | [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | Map reconstruction | — | ✅ Verified |
+| [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified ([ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
@@ -61,6 +63,8 @@ The following repos have been verified on AMD MI300X with ROCm:
 
 | Repo | Domain | Key ROCm Libs | Status |
 |------|--------|---------------|--------|
+| [yuantianyuan01/FastWAM](https://github.com/yuantianyuan01/FastWAM) | World Action Model (Wan2.2 DiT) | — (pure PyTorch, deepspeed) | ✅ Verified (ActionDiT 1.02B + **LIBERO eval 5/5 success**, AOTriton SDPA, out-of-box) |
+| [starVLA/starVLA](https://github.com/starVLA/starVLA) | VLA framework (Qwen3-VL + OFT/FAST/GR00T) | — (pure PyTorch, deepspeed) | ✅ Verified (8-GPU training 20K steps + **LIBERO 3-suite eval avg 97.8%**, AOTriton SDPA, out-of-box) |
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B inference | — (pure PyTorch) | 🔶 Likely (all deps installed, no CUDA blocker) |
 
 ### Partially Working (needs extra fixes)

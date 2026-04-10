@@ -1,6 +1,6 @@
 ---
 name: rocm-lib-compat
-version: 2.4.0
+version: 2.5.0
 author: ZJLi2013
 description: |
   ROCm library compatibility reference for porting ML repos (3D generation,
@@ -97,9 +97,11 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 | Backend | ROCm | Install | Perf | 验证 |
 |---------|------|---------|------|------|
-| **FA2 Triton** | **6.4.3** | `pip install flash-attn --index-url=https://pypi.amd.com/simple --extra-index-url https://pypi.org/simple` | baseline | ✅ HyDRA |
+| **FA2 Triton** | **6.4.3** | `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE pip install flash-attn` | baseline | ✅ TRELLIS.2 MI308X |
 | AITER Triton v3 | 6.4.3 | `pip install aiter` (Triton path auto-selected) | ~same | ✅ HyDRA |
 | **AITER CK** | **7.2.1** | `pip install aiter` (CK path auto-selected) | **-25%** | ✅ Matrix-Game (AITER ≥v0.1.13) |
+
+FA2 Triton 安装 & 运行均需 `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE`，运行时 Triton JIT 编译内核。
 
 ### Exclusion Pattern for requirements.txt
 
@@ -201,7 +203,7 @@ export PYTORCH_ROCM_ARCH=gfx942
 pip install -e . --no-build-isolation
 ```
 
-Verified: custom_rasterizer (Hunyuan3D ✅), o-voxel (TRELLIS.2 ✅ compile, ❌ runtime needs flex_gemm).
+Verified: custom_rasterizer (Hunyuan3D ✅), o-voxel (TRELLIS.2 ✅ compile + runtime with flex_gemm).
 
 ### numpy Pin Breaks on Python 3.12
 
@@ -210,22 +212,17 @@ If `requirements.txt` pins `numpy==1.24.x`, pip build isolation pulls old setupt
 
 Fix: skip the pin, use Docker-preinstalled numpy 2.x (add `numpy` to `EXCLUDE_PKGS`).
 
-### flash-attn: Prefer Wheel Over Source Build
+### flash-attn: Triton 路径 vs CK 路径
 
-Source-building flash-attn for ROCm (ROCm/flash-attention) compiles ~2199 .hip files
-and takes **~40 minutes**. Always try the pre-built wheel first:
+| 路径 | ROCm | 安装方式 | 编译时间 | 性能 |
+|------|------|---------|---------|------|
+| **Triton** (推荐) | 6.4 / 7.2 | `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE pip install flash-attn` | **37s** (纯 Python wheel) | baseline |
+| **CK** | 7.2 | `pip install flash-attn` (不设 env var) | ~40 min (2199 .hip files) | **-25%** |
 
-```bash
-pip install flash-attn --index-url=https://pypi.amd.com/simple --extra-index-url https://pypi.org/simple
-```
-
-Only fall back to source build if the wheel version is incompatible.
-
-### AOTriton (PyTorch Built-in Flash Attention)
-
-PyTorch 2.6+ on ROCm uses AOTriton as the SDPA backend automatically — no need to
-install flash-attn at all for repos that use `torch.nn.functional.scaled_dot_product_attention`.
-Confirmed in Hunyuan3D-2.1 logs: `Using AOTriton backend for Flash Attention forward...`
+- **Triton 路径**: 安装和运行时均需 `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE`；Triton 内核首次调用 JIT 编译
+- **CK 路径**: 无需额外 env var，但编译耗时长；ROCm 7.2 上性能更优，适合需要极致 FA 性能的场景
+- **注意**: `pypi.amd.com` 不提供 flash-attn wheel，两条路径均从 pypi.org 源码安装
+- **注意**: `rocm6.4.3` Docker 镜像的 Triton 是损坏的 editable install，需 `pip install --force-reinstall triton --index-url https://download.pytorch.org/whl/rocm6.4`
 
 ---
 
@@ -250,7 +247,7 @@ python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is
 | Depth-Anything-3 | Mono depth + 3DGS | xformers, gsplat | ✅ |
 | Matrix-Game | Video world model | flash-attn→AITER CK | ✅ |
 | **Hunyuan3D-2.1** | Image-to-3D + PBR | — (纯 PyTorch, AOTriton FA) | ✅ shape gen (60s, 344K verts, MI300X) |
-| **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅, flex_gemm ✅ ([PR #18](https://github.com/JeffreyXiang/FlexGEMM/pull/18)), cumesh ✅ (`ZJLi2013/CuMesh@rocm`), nvdiffrast ✅ (`ZJLi2013/nvdiffrast@rocm`) | 🔶 集成测试进行中 |
+| **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅ (Triton AMD), flex_gemm ✅, cumesh ✅, nvdiffrast ✅, o-voxel ✅ | ✅ 5.99M verts, 12.2M faces, ~5min MI308X |
 | **video_to_world** | Video→3D recon | tinycudann→tiny-rocm-nn, gsplat, xformers | 🔶 Stage 0-1b PASS, split_k fix 待重跑 |
 
 ---
