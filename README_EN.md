@@ -35,6 +35,8 @@ The following repos have been verified on AMD MI300X with ROCm:
 | [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS (ROCm fork) | diff-gaussian-rasterization | ✅ Verified |
 | [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | Map reconstruction | — | ✅ Verified |
 | [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified ([ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)) |
+| [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | Dense 3D reconstruction (VGGT-like, depth+pose) | — (AOTriton SDPA, FlashInfer fallback) | ✅ Verified (`--use_sdpa`, 286-frame church @ 2.5 FPS) |
+| [cvg/resplat](https://github.com/cvg/resplat) | Feed-forward 3DGS (recurrent) | gsplat, pointops | ✅ Verified (DL3DV demo, PSNR 31.17 / SSIM 0.954 / LPIPS 0.074) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
