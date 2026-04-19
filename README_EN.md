@@ -37,6 +37,8 @@ The following repos have been verified on AMD MI300X with ROCm:
 | [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified ([ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)) |
 | [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | Dense 3D reconstruction (VGGT-like, depth+pose) | — (AOTriton SDPA, FlashInfer fallback) | ✅ Verified (`--use_sdpa`, 286-frame church @ 2.5 FPS) |
 | [cvg/resplat](https://github.com/cvg/resplat) | Feed-forward 3DGS (recurrent) | gsplat, pointops | ✅ Verified (DL3DV demo, PSNR 31.17 / SSIM 0.954 / LPIPS 0.074) |
+| [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation (TRELLIS.2-based) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified (full seg, 66K verts, ~107s, reuses TRELLIS.2 ROCm env) |
+| [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | Feed-forward 3DGS prediction | **amd_gsplat**, fused-ssim (native HIP) | ✅ Verified (eval 1.25s/scene, MI308X) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
@@ -94,7 +96,7 @@ ROCm 6.4 is the default base (most libs have pre-built wheels). ROCm 7.x only fo
 | flash-attn | `pip install aiter` — AITER CK backend, **~25% faster** | **7.x** |
 | flash-attn | `pip install aiter` — AITER Triton v3 (auto-selected on 6.x) | 6.x |
 | xformers | `pip install xformers --index-url https://download.pytorch.org/whl/rocm6.4` | 6.4 only |
-| gsplat | `pip install gsplat --index-url=https://pypi.amd.com/simple` | 6.4 / 7.0 |
+| gsplat | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | 6.4 (pkg name `amd_gsplat`, import as `gsplat`) |
 | pytorch3d | Pre-built ROCm wheel | 6.4 only |
 
 See [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) for the full table, AITER integration patterns, and troubleshooting guide.

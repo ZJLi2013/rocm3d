@@ -79,7 +79,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | Library | ROCm Install | Notes |
 |---------|-------------|-------|
 | **xformers** | `pip install -U xformers==0.0.32.post2 --index-url https://download.pytorch.org/whl/rocm6.4` | ROCm 6.4 only; version must match torch |
-| **gsplat** | `pip install gsplat --index-url=https://pypi.amd.com/simple --extra-index-url https://pypi.org/simple` | ROCm 6.4 / 7.0; never source build |
+| **gsplat** | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | 包名 `amd_gsplat` 含预编译 `csrc.so`; import 仍为 `gsplat`; ROCm 6.4; pypi.amd.com 上的 `gsplat` 包无 compiled ext，不可用 |
 | **pytorch3d** | `pip install https://github.com/ZJLi2013/pytorch3d/releases/download/rocm6.4-py3.12/pytorch3d-0.7.9-cp312-cp312-linux_x86_64.whl` | ROCm 6.4 only; Python 3.12 |
 | **triton** | `pip install triton --index-url https://download.pytorch.org/whl/rocm6.4` | Bundled with ROCm PyTorch; rarely needed |
 | **torch-geometric** | `pip install torch_geometric && pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-<ver>+<rocm>.html` | Match torch version |
@@ -248,6 +248,8 @@ python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is
 | Matrix-Game | Video world model | flash-attn→AITER CK | ✅ |
 | **Hunyuan3D-2.1** | Image-to-3D + PBR | — (纯 PyTorch, AOTriton FA) | ✅ shape gen (60s, 344K verts, MI300X) |
 | **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅ (Triton AMD), flex_gemm ✅, cumesh ✅, nvdiffrast ✅, o-voxel ✅ | ✅ 5.99M verts, 12.2M faces, ~5min MI308X |
+| **SegviGen** | 3D part segmentation (TRELLIS.2-based) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ full_seg inference, 15.2s MI308X |
+| **TokenGS** | 3D Gaussian prediction (feed-forward) | amd_gsplat, fused-ssim (HIP native) | ✅ eval 1.25s/scene, PSNR 14.43, MI308X |
 | **video_to_world** | Video→3D recon | tinycudann→tiny-rocm-nn, gsplat, xformers | 🔶 Stage 0-1b PASS, split_k fix 待重跑 |
 
 ---
