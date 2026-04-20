@@ -33,7 +33,7 @@ CK performance matters and the repo does NOT depend on xformers/gsplat/pytorch3d
 | **7.0** | ✅ | ⚠️ | ✅ wheel | ❌ | — | ✅ CK + Triton |
 | **7.2** | ✅ | ❌ no wheel | ? | ❌ | — | ✅ CK + Triton |
 
-> **pytorch3d source build pitfall (verified 2026-03-31, MI308X):**
+> **pytorch3d source build pitfall (verified 2026-03-31, MI300X):**
 > `pip install "git+...pytorch3d.git" --no-build-isolation` **builds successfully**
 > (~80s) but produces a **CPU-only binary** — GPU rasterization kernels are missing
 > (`"Not compiled with GPU support"`). The pre-built wheel is the only reliable
@@ -97,7 +97,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 | Backend | ROCm | Install | Perf | 验证 |
 |---------|------|---------|------|------|
-| **FA2 Triton** | **6.4.3** | `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE pip install flash-attn` | baseline | ✅ TRELLIS.2 MI308X |
+| **FA2 Triton** | **6.4.3** | `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE pip install flash-attn` | baseline | ✅ TRELLIS.2 MI300X |
 | AITER Triton v3 | 6.4.3 | `pip install aiter` (Triton path auto-selected) | ~same | ✅ HyDRA |
 | **AITER CK** | **7.2.1** | `pip install aiter` (CK path auto-selected) | **-25%** | ✅ Matrix-Game (AITER ≥v0.1.13) |
 
@@ -131,7 +131,7 @@ txt = p.read_text(); txt = pat1.sub('', txt); txt = pat2.sub('', txt); p.write_t
 For repos with C++/CUDA extensions:
 
 ```bash
-export PYTORCH_ROCM_ARCH="gfx942"   # MI300X/MI308X
+export PYTORCH_ROCM_ARCH="gfx942"   # MI300X/MI300X
 # export PYTORCH_ROCM_ARCH="gfx1100"  # RX 7900 XTX
 ```
 
@@ -183,7 +183,7 @@ Same API as `flash_attn.flash_attn_varlen_func`.
 |---------|--------|------------|----------|
 | **cuda-python** | NVIDIA CUDA Python bindings | Remove if not in critical path | — |
 | **spconv-cu\*** | CUDA-only sparse convolution (cumm/pccm 生成 CUDA kernel) | 迁移中: [ZJLi2013/spconv_rocm](https://github.com/ZJLi2013/spconv_rocm) hipBLAS 路线 | 2026-03 |
-| **tinycudann** | CUDA hash grid + MLP | [tiny-rocm-nn](https://github.com/ZJLi2013/tiny-rocm-nn): 编译+forward ✅, backward split_k bug 已修复 (`6f32935`), video_to_world Stage 0-1b PASS, 全 pipeline 待重跑 | 2026-04-01 MI308X |
+| **tinycudann** | CUDA hash grid + MLP | [tiny-rocm-nn](https://github.com/ZJLi2013/tiny-rocm-nn): 编译+forward ✅, backward split_k bug 已修复 (`6f32935`), video_to_world Stage 0-1b PASS, 全 pipeline 待重跑 | 2026-04-01 MI300X |
 | **cupy-cuda12x** | NVIDIA CUDA Python array | Skip or `cupy-rocm-5-0` (limited, old ROCm) | — |
 | **auto_gptq** | CUDA quantization | Skip quantization or use GGUF | — |
 | **nvidia-cuda-nvcc** | NVIDIA compiler | Not needed on ROCm | — |
@@ -247,9 +247,10 @@ python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is
 | Depth-Anything-3 | Mono depth + 3DGS | xformers, gsplat | ✅ |
 | Matrix-Game | Video world model | flash-attn→AITER CK | ✅ |
 | **Hunyuan3D-2.1** | Image-to-3D + PBR | — (纯 PyTorch, AOTriton FA) | ✅ shape gen (60s, 344K verts, MI300X) |
-| **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅ (Triton AMD), flex_gemm ✅, cumesh ✅, nvdiffrast ✅, o-voxel ✅ | ✅ 5.99M verts, 12.2M faces, ~5min MI308X |
-| **SegviGen** | 3D part segmentation (TRELLIS.2-based) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ full_seg inference, 15.2s MI308X |
-| **TokenGS** | 3D Gaussian prediction (feed-forward) | amd_gsplat, fused-ssim (HIP native) | ✅ eval 1.25s/scene, PSNR 14.43, MI308X |
+| **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅ (Triton AMD), flex_gemm ✅, cumesh ✅, nvdiffrast ✅, o-voxel ✅ | ✅ 5.99M verts, 12.2M faces, ~5min MI300X |
+| **SegviGen** | 3D part segmentation (TRELLIS.2-based) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ full_seg inference, 15.2s MI300X |
+| **TokenGS** | 3D Gaussian prediction (feed-forward) | amd_gsplat, fused-ssim (HIP native) | ✅ eval 1.25s/scene, PSNR 14.43, MI300X |
+| **Lyra-2** | Image→3D world (Wan2.1 + DA3 + GS) | flash-attn, TE→PyTorch SDPA, megatron stub | ✅ zoom-in/out video gen, 14B model, ~2h, MI300X |
 | **video_to_world** | Video→3D recon | tinycudann→tiny-rocm-nn, gsplat, xformers | 🔶 Stage 0-1b PASS, split_k fix 待重跑 |
 
 ---
