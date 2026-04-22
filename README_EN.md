@@ -47,6 +47,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [cvg/resplat](https://github.com/cvg/resplat) | Feed-forward 3DGS | 🟢 MIT | gsplat, pointops | ✅ Verified (PSNR 31.17 / SSIM 0.954) |
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ Verified (66K verts, ~107s) |
 | [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | Feed-forward 3DGS prediction | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ Verified (1.25s/scene, MI300X) |
+| [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D perception (VGGT) | 🟢 Apache-2.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (poses+depth+points, ~70s) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
@@ -71,6 +72,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [ABU121111/DreamWorld](https://github.com/ABU121111/DreamWorld) | Video generation (Wan2.1 + VGGT) | ❓ No LICENSE file | — | ✅ Verified (2 videos, ~39min) |
 | [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) | Image→3D world (Wan2.1 + DA3 + GS) | 🔴 Code: Apache-2.0; **Weights: NVIDIA License (non-commercial, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ Verified (zoom-in/out video, 14B, ~2h, MI300X) |
 | [Sim2Reason/Sim2Reason](https://github.com/Sim2Reason/Sim2Reason) | LLM physics reasoning (VERL + Qwen2.5) | ❓ No LICENSE file; verl_v4 subtree Apache-2.0 | vLLM→HF generate, liger-kernel | ✅ Verified (JEEBench 123q, ~100min, MI300X) |
+| [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | Arbitrary-view 3D reconstruction (Wan2.1 14B + DiffSynth) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (chair video 5.0MB, ~7.4min, MI300X) |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | Monocular 4D geometry + motion | 🟡 Academic Only (custom; no commercial; EU restricted) | xformers, pytorch3d | 🔶 Likely |
 
 ### VLA / Embodied AI
@@ -88,6 +90,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | Video → 3D reconstruction | 🟢 MIT | 🔶 Stage 0-1b PASS | tinycudann split_k fix |
 | [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D scene generation | 🟡 CC BY-NC-SA 4.0 | 🔶 85% pass | spconv lacks ROCm GPU kernel |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D scene understanding (VLA) | 🟢 Apache-2.0 | 🔶 Env ready | Needs ScanNet dataset |
+| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animate-ready 3D assets (TRELLIS) | ❓ No LICENSE file | 🔶 Model loading OK | spconv GPU kernel CUDA-only; pytorch3d/nvdiffrast/flash-attn all OK |
 
 ## Project Structure
 
