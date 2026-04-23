@@ -83,6 +83,16 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [starVLA/starVLA](https://github.com/starVLA/starVLA) | VLA framework (Qwen3-VL) | 🟢 MIT | — (pure PyTorch, deepspeed) | ✅ Verified (LIBERO avg 97.8%) |
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B inference | 🟢 Apache-2.0 | — (pure PyTorch) | 🔶 Likely |
 
+### Grasping
+
+> **⚠️ License Warning: Both repos below use a custom NVIDIA License (non-commercial). Model weights are equally restricted.**
+> **For academic research / technical verification only (study purpose only). Commercial use and redistribution are strictly prohibited.**
+
+| Repo | Domain | License | Key ROCm Libs | Status |
+|------|--------|---------|---------------|--------|
+| [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF diffusion grasp generation | 🔴 **NVIDIA License (non-commercial)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ Verified (3 objects demo, 0.4-1.9s, MI308X) |
+| [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF scene-level grasping | 🔴 **NVIDIA License (non-commercial)** — study only | — (pure PyTorch PointNet2, zero migration) | ✅ Verified (3 scenes, 308-382 grasps, 6-10s, MI308X) |
+
 ### Partially Working (needs extra fixes)
 
 | Repo | Domain | License | Status | Blocker |
