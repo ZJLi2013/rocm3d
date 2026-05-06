@@ -47,6 +47,7 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D 部件分割 | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ 已验证（66K verts, ~107s） |
 | [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | 前馈式 3DGS 预测 | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ 已验证（1.25s/scene, MI300X） |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D 感知 (VGGT) | 🟢 Apache-2.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（poses+depth+points, ~70s） |
+| [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | 点云 Backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ 已验证（ModelNet40 40/40 类 PASS, MI308X） |
 
 ### 3D/4D 生成
 
@@ -97,9 +98,9 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | Repo | 领域 | 许可 | 状态 | Blocker |
 |------|------|------|------|---------|
 | [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | 视频→3D 重建 | 🟢 MIT | 🔶 Stage 0-1b PASS | tinycudann split_k fix |
-| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D 场景生成 | 🟡 CC BY-NC-SA 4.0 | 🔶 85% 通过 | spconv 无 ROCm GPU kernel |
+| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D 场景生成 | 🟡 CC BY-NC-SA 4.0 | 🔶 85% 通过 | spconv_rocm HIP kernel 已就绪，待重测 |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D 场景理解 (VLA) | 🟢 Apache-2.0 | 🔶 环境就绪 | 需 ScanNet 数据集 |
-| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | 动画就绪 3D 资产 (TRELLIS) | ❓ 无 LICENSE 文件 | 🔶 模型加载 OK | spconv GPU kernel CUDA-only; pytorch3d/nvdiffrast/flash-attn 均 OK |
+| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | 动画就绪 3D 资产 (TRELLIS) | ❓ 无 LICENSE 文件 | 🔶 模型加载 OK | spconv_rocm HIP kernel 已就绪，待重测; pytorch3d/nvdiffrast/flash-attn 均 OK |
 
 ### ❌ NVIDIA-only (不可迁移)
 
@@ -129,6 +130,7 @@ ROCm 6.4 为默认基础环境（大部分库有 pre-built wheels），ROCm 7.x 
 | bitsandbytes | `pip install bitsandbytes` (≥v0.45.3) | 6.4+ |
 | flex_gemm | `pip install . --no-build-isolation` (Triton backend) | 6.4+ |
 | cumesh | `GPU_ARCHS=gfx942 pip install . --no-build-isolation` ([fork](https://github.com/ZJLi2013/CuMesh)) | 6.4+ |
+| spconv | `pip install -e .` ([spconv_rocm](https://github.com/ZJLi2013/spconv_rocm) rocm branch, HIP kernel) | 6.4+ / 7.2 |
 
 完整替换表、AITER 集成模式和问题排查见 [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md)。
 
