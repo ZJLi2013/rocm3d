@@ -47,10 +47,10 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D 部件分割 | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ 已验证（66K verts, ~107s） |
 | [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | 前馈式 3DGS 预测 | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ 已验证（1.25s/scene, MI300X） |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D 感知 (VGGT) | 🟢 Apache-2.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（poses+depth+points, ~70s） |
-| [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | 点云 Backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ 已验证（ModelNet40 40/40 类 PASS, MI308X） |
-| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D 场景生成 | 🟡 CC BY-NC-SA 4.0 | spconv_rocm, pytorch3d, flash-attn | ✅ 已验证（sparse encoder GPU PASS, MI308X） |
-| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | 动画就绪 3D 资产 (TRELLIS) | ❓ 无 LICENSE 文件 | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ 已验证（sparse encoder GPU PASS, MI308X） |
-| [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | 立体深度估计 (Transformer) | 🔴 **NVIDIA License (非商用)** — study only | xformers | ✅ 已验证（540x960 推理, 374.5M params, MI308XHF） |
+| [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | 点云 Backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ 已验证（ModelNet40 40/40 类 PASS, MI300X） |
+| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D 场景生成 | 🟡 CC BY-NC-SA 4.0 | spconv_rocm, pytorch3d, flash-attn | ✅ 已验证（sparse encoder GPU PASS, MI300X） |
+| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | 动画就绪 3D 资产 (TRELLIS) | ❓ 无 LICENSE 文件 | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ 已验证（sparse encoder GPU PASS, MI300X） |
+| [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | 立体深度估计 (Transformer) | 🔴 **NVIDIA License (非商用)** — study only | xformers | ✅ 已验证（540x960 推理, 374.5M params, MI300XHF） |
 
 ### 3D/4D 生成
 
@@ -93,9 +93,9 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
-| [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF 抓取检测 (GraspNet-1Billion) | ❓ 无明确许可 | pointnet2 (HIPified), knn shim (纯 PyTorch) | ✅ 已验证（325/119 grasps, 5.54s, MI308XHF） |
-| [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF 扩散抓取生成 | 🔴 **NVIDIA License (非商用)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ 已验证（3 物体 demo, 0.4-1.9s, MI308X） |
-| [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF 场景级抓取 | 🔴 **NVIDIA License (非商用)** — study only | — (纯 PyTorch PointNet2, 零迁移) | ✅ 已验证（3 场景 308-382 grasps, 6-10s, MI308X） |
+| [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF 抓取检测 (GraspNet-1Billion) | ❓ 无明确许可 | pointnet2 (HIPified), knn shim (纯 PyTorch) | ✅ 已验证（325/119 grasps, 5.54s, MI300XHF） |
+| [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF 扩散抓取生成 | 🔴 **NVIDIA License (非商用)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ 已验证（3 物体 demo, 0.4-1.9s, MI300X） |
+| [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF 场景级抓取 | 🔴 **NVIDIA License (非商用)** — study only | — (纯 PyTorch PointNet2, 零迁移) | ✅ 已验证（3 场景 308-382 grasps, 6-10s, MI300X） |
 
 ### 部分通过 (需额外修复)
 
