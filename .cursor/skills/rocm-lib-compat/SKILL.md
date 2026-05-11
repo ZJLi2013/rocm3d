@@ -1,6 +1,6 @@
 ---
 name: rocm-lib-compat
-version: 2.5.0
+version: 2.6.0
 author: ZJLi2013
 description: |
   ROCm library compatibility reference for porting ML repos (3D generation,
@@ -78,7 +78,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 | Library | ROCm Install | Notes |
 |---------|-------------|-------|
-| **xformers** | `pip install -U xformers==0.0.32.post2 --index-url https://download.pytorch.org/whl/rocm6.4` | ROCm 6.4 only; version must match torch |
+| **xformers** | `pip uninstall torchvision -y && pip install xformers torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4` | ROCm 6.4 only; 必须与 torchvision/torchaudio 一次性安装 (→ torch 2.9.1 + xformers 0.0.33.post2); 分步安装会导致 torch 版本冲突 |
 | **gsplat** | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | 包名 `amd_gsplat` 含预编译 `csrc.so`; import 仍为 `gsplat`; ROCm 6.4; pypi.amd.com 上的 `gsplat` 包无 compiled ext，不可用 |
 | **pytorch3d** | `pip install https://github.com/ZJLi2013/pytorch3d/releases/download/rocm6.4-py3.12/pytorch3d-0.7.9-cp312-cp312-linux_x86_64.whl` | ROCm 6.4 only; Python 3.12 |
 | **triton** | `pip install triton --index-url https://download.pytorch.org/whl/rocm6.4` | Bundled with ROCm PyTorch; rarely needed |
@@ -253,6 +253,8 @@ python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is
 | **Lyra-2** | Image→3D world (Wan2.1 + DA3 + GS) | flash-attn, TE→PyTorch SDPA, megatron stub | ✅ zoom-in/out video gen, 14B model, ~2h, MI300X |
 | **video_to_world** | Video→3D recon | tinycudann→tiny-rocm-nn, gsplat, xformers | 🔶 Stage 0-1b PASS, split_k fix 待重跑 |
 | **PointTransformerV3** | Point cloud backbone | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ ModelNet40 40/40 PASS, MI308X |
+| **FoundationStereo** | Stereo depth estimation | xformers (0.0.33.post2, torch 2.9.1) | ✅ 540x960 inference 158s, 374.5M params, MI308XHF |
+| **GraspNet-baseline** | 6-DoF grasp detection | pointnet2 (hipify), knn_pytorch shim | ✅ 119 grasps, 5.54s inference, MI308XHF |
 
 ---
 
