@@ -82,7 +82,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | **gsplat** | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | 包名 `amd_gsplat` 含预编译 `csrc.so`; import 仍为 `gsplat`; ROCm 6.4; pypi.amd.com 上的 `gsplat` 包无 compiled ext，不可用 |
 | **pytorch3d** | `pip install https://github.com/ZJLi2013/pytorch3d/releases/download/rocm6.4-py3.12/pytorch3d-0.7.9-cp312-cp312-linux_x86_64.whl` | ROCm 6.4 only; Python 3.12 |
 | **triton** | `pip install triton --index-url https://download.pytorch.org/whl/rocm6.4` | Bundled with ROCm PyTorch; rarely needed |
-| **torch-geometric** | `pip install torch_geometric torch-scatter-rocm torch-sparse-rocm torch-cluster-rocm` | [pyg-rocm-build](https://github.com/ZJLi2013/pyg-rocm-build) PyPI wheels; `torch_scatter` / `torch_sparse` / `torch_cluster` 原始 import name 不变; PTv3 ROCm 7.2 MI308X 验证通过 |
+| **torch-geometric** | `pip install torch_geometric torch-scatter-rocm torch-sparse-rocm torch-cluster-rocm` | [pyg-rocm-build](https://github.com/ZJLi2013/pyg-rocm-build) PyPI wheels; `torch_scatter` / `torch_sparse` / `torch_cluster` 原始 import name 不变; PTv3 ROCm 7.2 MI300X 验证通过 |
 | **apex** | `git clone https://github.com/ROCm/apex && cd apex && pip install . --no-build-isolation` | [ROCm/apex](https://github.com/ROCm/apex); 已含于 ROCm PyTorch Docker; hipblasLT on gfx942 |
 | **diff-gaussian-rasterization** | Source build with `PYTORCH_ROCM_ARCH=gfx942` | 3DGS submodule; hipcc compatible ✅ |
 | **simple-knn** | Source build with `PYTORCH_ROCM_ARCH=gfx942` | 3DGS submodule; hipcc compatible ✅ |
@@ -92,7 +92,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | **cumesh** | `GPU_ARCHS=gfx942 pip install . --no-build-isolation` (hipify 自动运行) | 全 3 扩展 ROCm ✅; `cuda::std::plus`→`cub::Sum`, `cuda::std::tuple`→`rocprim::tuple`, Vec3f 加 `__host__`, nvcc flags 分支; fork: `pip install git+https://github.com/ZJLi2013/CuMesh.git@rocm` |
 | **nvdiffrast** | `GPU_ARCHS=<arch> pip install git+https://github.com/ZJLi2013/nvdiffrast.git@rocm --no-build-isolation` | **ROCm 6.4 + 7.2 均验证**; RDNA3/4 (gfx1100/gfx1201) wave32 ✅ + CDNA3 (gfx942) wave64 半wavefront模拟 ✅; cudaraster 全 4 阶段 + interpolate + antialias grad + texture 全 PASS |
 | **nvdiffrec** | 同 nvdiffrast | ROCm 6.4 + 7.2; RDNA4 ✅ CDNA3 ✅ |
-| **spconv-cu\*** | `git clone -b rocm https://github.com/ZJLi2013/spconv_rocm.git && pip install -e .` | HIP kernel (indice pairs, Murmur3 hash) + C++ JIT ext + torch.mm GEMM; 28 tests PASS on MI308X; PTv3 standalone 40/40 类 inference ✅; ROCm 6.4+ / 7.2 |
+| **spconv-cu\*** | `git clone -b rocm https://github.com/ZJLi2013/spconv_rocm.git && pip install -e .` | HIP kernel (indice pairs, Murmur3 hash) + C++ JIT ext + torch.mm GEMM; 28 tests PASS on MI300X; PTv3 standalone 40/40 类 inference ✅; ROCm 6.4+ / 7.2 |
 
 **Flash Attention** (tiered strategy):
 
@@ -252,9 +252,9 @@ python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is
 | **TokenGS** | 3D Gaussian prediction (feed-forward) | amd_gsplat, fused-ssim (HIP native) | ✅ eval 1.25s/scene, PSNR 14.43, MI300X |
 | **Lyra-2** | Image→3D world (Wan2.1 + DA3 + GS) | flash-attn, TE→PyTorch SDPA, megatron stub | ✅ zoom-in/out video gen, 14B model, ~2h, MI300X |
 | **video_to_world** | Video→3D recon | tinycudann→tiny-rocm-nn, gsplat, xformers | 🔶 Stage 0-1b PASS, split_k fix 待重跑 |
-| **PointTransformerV3** | Point cloud backbone | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ ModelNet40 40/40 PASS, MI308X |
-| **FoundationStereo** | Stereo depth estimation | xformers (0.0.33.post2, torch 2.9.1) | ✅ 540x960 inference 158s, 374.5M params, MI308XHF |
-| **GraspNet-baseline** | 6-DoF grasp detection | pointnet2 (hipify), knn_pytorch shim | ✅ 119 grasps, 5.54s inference, MI308XHF |
+| **PointTransformerV3** | Point cloud backbone | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ ModelNet40 40/40 PASS, MI300X |
+| **FoundationStereo** | Stereo depth estimation | xformers (0.0.33.post2, torch 2.9.1) | ✅ 540x960 inference 158s, 374.5M params, MI300XHF |
+| **GraspNet-baseline** | 6-DoF grasp detection | pointnet2 (hipify), knn_pytorch shim | ✅ 119 grasps, 5.54s inference, MI300XHF |
 
 ---
 
