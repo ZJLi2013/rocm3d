@@ -48,6 +48,12 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ Verified (66K verts, ~107s) |
 | [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | Feed-forward 3DGS prediction | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ Verified (1.25s/scene, MI300X) |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D perception (VGGT) | 🟢 Apache-2.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (poses+depth+points, ~70s) |
+| [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | Point cloud backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ Verified (ModelNet40 40/40 classes PASS, MI300X) |
+| [ChenYutongTHU/GGPT](https://github.com/ChenYutongTHU/GGPT) | Multiview 3D reconstruction (CVPR'26, PTv3 + VGGT + SfM) | 🟢 MIT | spconv_rocm, flash-attn (ROCm fork), torch_scatter shim | ✅ Verified (68MB PLY point cloud, ~11min, MI300X) |
+| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D scene generation | 🟡 CC BY-NC-SA 4.0 | spconv_rocm, pytorch3d, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
+| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animation-ready 3D assets (TRELLIS) | ❓ No LICENSE file | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
+| [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | Stereo depth estimation (Transformer) | 🔴 **NVIDIA License (non-commercial)** — study only | xformers | ✅ Verified (540x960 inference, 374.5M params, MI300XHF) |
+| [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ No LICENSE file | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ Verified (8.7MB GLB, ~198s, MI300X) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
@@ -99,9 +105,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | Repo | Domain | License | Status | Blocker |
 |------|--------|---------|--------|---------|
 | [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | Video → 3D reconstruction | 🟢 MIT | 🔶 Stage 0-1b PASS | tinycudann split_k fix |
-| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D scene generation | 🟡 CC BY-NC-SA 4.0 | 🔶 85% pass | spconv lacks ROCm GPU kernel |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D scene understanding (VLA) | 🟢 Apache-2.0 | 🔶 Env ready | Needs ScanNet dataset |
-| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animate-ready 3D assets (TRELLIS) | ❓ No LICENSE file | 🔶 Model loading OK | spconv GPU kernel CUDA-only; pytorch3d/nvdiffrast/flash-attn all OK |
 
 ## Project Structure
 
