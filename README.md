@@ -78,6 +78,8 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) | 图像→3D 世界 (Wan2.1 + DA3 + GS) | 🔴 代码 Apache-2.0; **模型权重 NVIDIA License (非商用, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ 已验证（zoom-in/out 视频, 14B, ~2h, MI300X） |
 | [Sim2Reason/Sim2Reason](https://github.com/Sim2Reason/Sim2Reason) | LLM 物理推理 (VERL + Qwen2.5) | ❓ 无 LICENSE 文件; verl_v4 子目录 Apache-2.0 | vLLM→HF generate, liger-kernel | ✅ 已验证（JEEBench 123q, ~100min, MI300X） |
 | [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | 任意视角 3D 重建 (Wan2.1 14B + DiffSynth) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（chair 视频 5.0MB, ~7.4min, MI300X） |
+| [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | 视频扩散 + 3D 几何 (ICLR 2026) | 🟢 MIT | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（3 demo GIFs, 16f×256², ~69s, MI308XHF） |
+| [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D 视频生成 (Wan2.1 14B + LoRA) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（384p 49 frames, ~44min, MI300X） |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | 单目 4D 几何+运动重建 | 🟡 Academic Only (自定义; 禁止商用; EU 限制) | xformers, pytorch3d | 🔶 大概率 |
 
 ### VLA / 具身智能
@@ -111,6 +113,7 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | Repo | 领域 | 许可 | Blocker |
 |------|------|------|---------|
 | [NVlabs/sage](https://github.com/NVlabs/sage) | 场景级 3D 操控 | 🟢 Apache-2.0 (代码) | Isaac Sim, cuRobo, warp-lang — 深度绑定 NVIDIA 生态 |
+| [Simulation-Intelligence/PAT3D](https://github.com/Simulation-Intelligence/PAT3D) | 物理感知 3D 生成 | ❓ 无 LICENSE 文件 | pyuipc (CUDA 13 私有 wheel) + CUDA 13 nightly torch — 物理引擎深度绑定 NVIDIA |
 
 ## 项目结构
 
