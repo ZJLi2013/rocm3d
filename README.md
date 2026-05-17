@@ -54,6 +54,9 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | 立体深度估计 (Transformer) | 🔴 **NVIDIA License (非商用)** — study only | xformers | ✅ 已验证（540x960 推理, 374.5M params, MI300XHF） |
 | [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ 无 LICENSE 文件 | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ 已验证（8.7MB GLB, ~198s, MI300X） |
 
+| [Fictionarry/AmbiSuR](https://github.com/Fictionarry/AmbiSuR) | 3DGS 表面重建 (ICML'26, DA3 depth) | ❓ 无 LICENSE 文件 | diff-plane-rasterization (hipcc), simple-knn, pytorch3d | ✅ 已验证（ROCmBuildExtension 8 fixes, MI300X） |
+| [AaronNZH/LeGS](https://github.com/AaronNZH/LeGS) | 3DGS RL 密度控制 (ICML'26) | ❓ 无 LICENSE 文件 | diff-gaussian-rasterization_fastgs (hipcc), simple-knn, fused-ssim | ✅ 已验证（100 iter 105 it/s, MI300X） |
+
 ### 3D/4D 生成
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
@@ -78,8 +81,9 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) | 图像→3D 世界 (Wan2.1 + DA3 + GS) | 🔴 代码 Apache-2.0; **模型权重 NVIDIA License (非商用, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ 已验证（zoom-in/out 视频, 14B, ~2h, MI300X） |
 | [Sim2Reason/Sim2Reason](https://github.com/Sim2Reason/Sim2Reason) | LLM 物理推理 (VERL + Qwen2.5) | ❓ 无 LICENSE 文件; verl_v4 子目录 Apache-2.0 | vLLM→HF generate, liger-kernel | ✅ 已验证（JEEBench 123q, ~100min, MI300X） |
 | [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | 任意视角 3D 重建 (Wan2.1 14B + DiffSynth) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（chair 视频 5.0MB, ~7.4min, MI300X） |
-| [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | 视频扩散 + 3D 几何 (ICLR 2026) | 🟢 MIT | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（3 demo GIFs, 16f×256², ~69s, MI308XHF） |
+| [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | 视频扩散 + 3D 几何 (ICLR 2026) | 🟢 MIT | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（3 demo GIFs, 16f×256², ~69s, MI300X） |
 | [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D 视频生成 (Wan2.1 14B + LoRA) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（384p 49 frames, ~44min, MI300X） |
+| [mlzxy/rla-wm](https://github.com/mlzxy/rla-wm) | 视觉世界模型 + 机器人学习 (arXiv'26) | ❓ 无 LICENSE 文件 | amd_gsplat, nvdiffrast (ROCm fork), torch-scatter | ✅ 已验证（521M model load, 2.08GB, MI300X） |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | 单目 4D 几何+运动重建 | 🟡 Academic Only (自定义; 禁止商用; EU 限制) | xformers, pytorch3d | 🔶 大概率 |
 
 ### VLA / 具身智能
@@ -88,6 +92,7 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 |------|------|------|-------------|------|
 | [yuantianyuan01/FastWAM](https://github.com/yuantianyuan01/FastWAM) | World Action Model (Wan2.2 DiT) | 🟢 MIT | — (纯 PyTorch, deepspeed) | ✅ 已验证（LIBERO 5/5 success） |
 | [starVLA/starVLA](https://github.com/starVLA/starVLA) | VLA 框架 (Qwen3-VL) | 🟢 MIT | — (纯 PyTorch, deepspeed) | ✅ 已验证（LIBERO avg 97.8%） |
+| [JIAjindou/A2A_Flow_Matching](https://github.com/JIAjindou/A2A_Flow_Matching) | Action-to-Action Flow Matching (RSS'26) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, torchcfm) | ✅ 已验证（GPU smoke test PASS, MI300X） |
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B 推理 | 🟢 Apache-2.0 | — (纯 PyTorch) | 🔶 大概率 |
 
 ### 抓取 (Grasping)
@@ -106,6 +111,7 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 | Repo | 领域 | 许可 | 状态 | Blocker |
 |------|------|------|------|---------|
 | [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | 视频→3D 重建 | 🟢 MIT | 🔶 Stage 0-1b PASS | tinycudann split_k fix |
+| [AIGeeksGroup/Lite3R](https://github.com/AIGeeksGroup/Lite3R) | 轻量 3D 重建压缩 (FP8 QAT) | ❓ 无 LICENSE 文件 | 🔶 SDPA/FP8/_scaled_mm OK | torchao >=0.17 需 PyTorch >=2.11 |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D 场景理解 (VLA) | 🟢 Apache-2.0 | 🔶 环境就绪 | 需 ScanNet 数据集 |
 
 ### ❌ NVIDIA-only (不可迁移)

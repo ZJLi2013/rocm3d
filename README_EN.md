@@ -79,7 +79,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) | Image→3D world (Wan2.1 + DA3 + GS) | 🔴 Code: Apache-2.0; **Weights: NVIDIA License (non-commercial, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ Verified (zoom-in/out video, 14B, ~2h, MI300X) |
 | [Sim2Reason/Sim2Reason](https://github.com/Sim2Reason/Sim2Reason) | LLM physics reasoning (VERL + Qwen2.5) | ❓ No LICENSE file; verl_v4 subtree Apache-2.0 | vLLM→HF generate, liger-kernel | ✅ Verified (JEEBench 123q, ~100min, MI300X) |
 | [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | Arbitrary-view 3D reconstruction (Wan2.1 14B + DiffSynth) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (chair video 5.0MB, ~7.4min, MI300X) |
-| [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | Video diffusion + 3D geometry (ICLR 2026) | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 demo GIFs, 16f×256², ~69s, MI308XHF) |
+| [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | Video diffusion + 3D geometry (ICLR 2026) | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 demo GIFs, 16f×256², ~69s, MI300X) |
 | [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D video generation (Wan2.1 14B + LoRA) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (384p 49 frames, ~44min, MI300X) |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | Monocular 4D geometry + motion | 🟡 Academic Only (custom; no commercial; EU restricted) | xformers, pytorch3d | 🔶 Likely |
 
