@@ -2,17 +2,34 @@
 
 **中文** | [English](README_EN.md)
 
-Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模型、视频生成等）移植到 AMD ROCm 平台。
+一组 Cursor agent skill，专门面向 3D / 视频 / 世界模型 / VLA / 具身智能开源仓库在 AMD ROCm 平台上的**移植、性能分析、与 kernel 优化**。
 
-核心价值：提供一张 **ROCm 库替换表** — 当 repo 依赖中出现 CUDA 专用库时，告诉 Cursor 如何安装对应的 ROCm 兼容版本。
+## 核心价值（三个 skill, 三个职责）
+
+```
+[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-llm-kernels-for-3d ]
+ (让 repo 跑起来)         (量化分析 + 优先级排序)      (用 AITER 替换 kernel)
+```
+
+| Skill | 解决什么问题 | 何时调用 |
+|---|---|---|
+| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | 给 CUDA-only repo 出 ROCm 安装脚本（flash-attn / xformers / gsplat / spconv 等） | repo 还跑不起来时 |
+| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS，输出"哪些 kernel 值得优化"排序表 | repo 跑通后，决定优化方向时 |
+| [`rocm-llm-kernels-for-3d`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) | 把 AMD ATOM/AITER 在 LLM 上的 kernel 使用 pattern 复刻到 3D 模型上（attention / GEMM / norm / quant / piecewise compile） | 拿到 perf-analysis 的优化清单后，动手替换时 |
 
 ## 使用方式
 
-在 Cursor 中调用 skill：
+在 Cursor 中按场景调用对应 skill：
 
 ```
 "使用 rocm-lib-compat skill，给 https://github.com/<owner>/<repo> 生成 ROCm install 脚本"
+
+"使用 rocm-perf-analysis skill，给 <model> 跑 phase-split roofline 报告"
+
+"使用 rocm-llm-kernels-for-3d skill，按 ATOM pattern 把 AITER attention 接入 <model>"
 ```
+
+
 
 ## 已支持的 Repo
 
@@ -124,29 +141,36 @@ Cursor agent skill，用于将 ML 开源仓库（3D 生成、重建、世界模�
 ## 项目结构
 
 ```
-.cursor/skills/rocm-lib-compat/
-  SKILL.md       # 核心 skill — ROCm 库替换表 + AITER FA3
+rocm3d/
+├── README.md                              # 项目入口（本文件）
+├── README_EN.md                           # English version
+└── .cursor/skills/
+    ├── rocm-lib-compat/                   # Skill 1：兼容性
+    │   └── SKILL.md                       #   ROCm 库替换表 + AITER FA3
+    ├── rocm-perf-analysis/                # Skill 2：性能分析
+    │   ├── SKILL.md                       #   TraceLens phase-split roofline 工作流
+    │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS 表
+    └── rocm-llm-kernels-for-3d/           # Skill 3：AITER kernel 替换
+        ├── SKILL.md                       #   ATOM 6 大 pattern + AITER → 3D 模型映射 + 7 步 recipe
+        ├── cookbook.md                    #   可执行代码骨架：model_ops wrappers / loader / compile / validate / version switch
+        └── aiter-api.md                   #   AITER kernel 全景速查（dtype 矩阵 + SGLang/vLLM 集成清单，自包含）
 ```
 
-## 核心替换表（摘要）
+设计原则：
 
-ROCm 6.4 为默认基础环境（大部分库有 pre-built wheels），ROCm 7.x 仅用于 flash-attn CK 加速。
-
-| 库 | ROCm 方案 | ROCm 版本 |
-|----|----------|----------|
-| flash-attn | `pip install flash-attn --index-url=https://pypi.amd.com/simple`（FA2 Triton） | 6.x |
-| flash-attn | `pip install aiter` — AITER CK 后端，**快 ~25%** | **7.x** |
-| flash-attn | `pip install aiter` — AITER Triton v3（6.x 自动选择） | 6.x |
-| xformers | `pip install xformers --index-url https://download.pytorch.org/whl/rocm6.4` | 6.4 only |
-| gsplat | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | 6.4 (包名 `amd_gsplat`, import 仍为 `gsplat`) |
-| pytorch3d | 预编译 ROCm wheel | 6.4 only |
-| bitsandbytes | `pip install bitsandbytes` (≥v0.45.3) | 6.4+ |
-| flex_gemm | `pip install . --no-build-isolation` (Triton backend) | 6.4+ |
-| cumesh | `GPU_ARCHS=gfx942 pip install . --no-build-isolation` ([fork](https://github.com/ZJLi2013/CuMesh)) | 6.4+ |
-| spconv | `pip install -e .` ([spconv_rocm](https://github.com/ZJLi2013/spconv_rocm) rocm branch, HIP kernel) | 6.4+ / 7.2 |
-
-完整替换表、AITER 集成模式和问题排查见 [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md)。
+- **以 SKILL.md 文档为主**，不维护独立 .py 脚本。所有可执行片段以 `python -c "..."` / shell block 形式直接嵌入 markdown，agent 可以直接 copy-paste。
+- **三个 skill 单一职责**，互不污染；每个都可以独立加载，避免大 skill 被强制塞到所有 context 里。
+- **外部工具优先**：能用 [TraceLens](https://github.com/AMD-AGI/TraceLens-internal) / [AITER](https://github.com/ROCm/aiter) / [ATOM](https://github.com/ROCm/ATOM) / [inference-skill](https://github.com/AMD-AIM/inference-skill) 的就不自己写。
+- **与 AMD 官方工具链呼应**：`rocm-perf-analysis` 是 AMD-AIM 的 `inferencex-optimize` 在 3D 邻域的轻量版本，复用同样的 TraceLens + GPU peak 表 + phase-split 方法论。
 
 ## 贡献
 
-新增 ROCm 库映射请更新 `.cursor/skills/rocm-lib-compat/SKILL.md`
+| 你想新增/修改… | 更新这里 |
+|---|---|
+| ROCm 库映射（新增 repo 支持） | [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) |
+| 性能分析方法（phase split / roofline workflow） | [`.cursor/skills/rocm-perf-analysis/SKILL.md`](.cursor/skills/rocm-perf-analysis/SKILL.md) |
+| 新 GPU SKU peak TFLOPS 数据 | [`.cursor/skills/rocm-perf-analysis/gpu-specs.md`](.cursor/skills/rocm-perf-analysis/gpu-specs.md) |
+| AITER / ATOM pattern → 3D 模型替换 recipe | [`.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) |
+| 可执行代码骨架（model_ops / loader / compile / validate） | [`.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md) |
+| AITER kernel 全景速查（dtype 矩阵 + 集成清单） | [`.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md) |
+| 已支持的 repo 列表（上方表格） | 本 README.md |

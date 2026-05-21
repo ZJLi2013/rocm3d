@@ -2,17 +2,31 @@
 
 [中文](README.md) | **English**
 
-Cursor agent skill for porting ML repos (3D generation, reconstruction, world models, video generation, etc.) to AMD ROCm.
+A set of Cursor agent skills targeting open-source repos in 3D / video / world models / VLA / embodied AI, for **porting, performance analysis, and kernel optimization** on AMD ROCm.
 
-Provides a canonical **ROCm library replacement table** — when you encounter a CUDA-dependent library
-in a repo's dependencies, the skill tells Cursor exactly how to install the ROCm equivalent.
+## Core Value (three skills, three responsibilities)
+
+```
+[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-llm-kernels-for-3d ]
+ (make the repo run)      (measure + prioritize)       (replace kernels with AITER)
+```
+
+| Skill | Problem it solves | When to invoke |
+|---|---|---|
+| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | Generate ROCm install scripts for CUDA-only repos (flash-attn / xformers / gsplat / spconv, etc.) | When the repo doesn't run yet |
+| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS; produces a ranked list of "which kernels are worth optimizing" | After the repo runs, when deciding what to optimize |
+| [`rocm-llm-kernels-for-3d`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) | Replicate AMD ATOM/AITER's LLM-side kernel-usage patterns onto 3D models (attention / GEMM / norm / quant / piecewise compile) | After getting the perf-analysis target list, when actually swapping kernels |
 
 ## Usage
 
-In Cursor, invoke the skill:
+Invoke the appropriate skill in Cursor based on your scenario:
 
 ```
 "Use rocm-lib-compat skill to generate ROCm install script for https://github.com/<owner>/<repo>"
+
+"Use rocm-perf-analysis skill to run a phase-split roofline report for <model>"
+
+"Use rocm-llm-kernels-for-3d skill to wire AITER attention into <model> following the ATOM pattern"
 ```
 
 ## Supported Repos
@@ -43,7 +57,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS (ROCm fork) | 🟡 Inria/MPII non-commercial | diff-gaussian-rasterization | ✅ Verified |
 | [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | Map reconstruction | 🟢 Apache-2.0 | — | ✅ Verified |
 | [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | 🟢 MIT | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified ([ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)) |
-| [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | Dense 3D reconstruction | 🟢 Apache-2.0 | — (AOTriton SDPA) | ✅ Verified (church 286 frames @ 2.5 FPS) |
+| [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | Dense 3D reconstruction (VGGT-like) | 🟢 Apache-2.0 | — (AOTriton SDPA) | ✅ Verified (church 286 frames @ 2.5 FPS) |
 | [cvg/resplat](https://github.com/cvg/resplat) | Feed-forward 3DGS | 🟢 MIT | gsplat, pointops | ✅ Verified (PSNR 31.17 / SSIM 0.954) |
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ Verified (66K verts, ~107s) |
 | [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | Feed-forward 3DGS prediction | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ Verified (1.25s/scene, MI300X) |
@@ -54,6 +68,9 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animation-ready 3D assets (TRELLIS) | ❓ No LICENSE file | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
 | [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | Stereo depth estimation (Transformer) | 🔴 **NVIDIA License (non-commercial)** — study only | xformers | ✅ Verified (540x960 inference, 374.5M params, MI300XHF) |
 | [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ No LICENSE file | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ Verified (8.7MB GLB, ~198s, MI300X) |
+
+| [Fictionarry/AmbiSuR](https://github.com/Fictionarry/AmbiSuR) | 3DGS surface reconstruction (ICML'26, DA3 depth) | ❓ No LICENSE file | diff-plane-rasterization (hipcc), simple-knn, pytorch3d | ✅ Verified (ROCmBuildExtension 8 fixes, MI300X) |
+| [AaronNZH/LeGS](https://github.com/AaronNZH/LeGS) | 3DGS RL density control (ICML'26) | ❓ No LICENSE file | diff-gaussian-rasterization_fastgs (hipcc), simple-knn, fused-ssim | ✅ Verified (100 iter @ 105 it/s, MI300X) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
@@ -81,6 +98,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | Arbitrary-view 3D reconstruction (Wan2.1 14B + DiffSynth) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (chair video 5.0MB, ~7.4min, MI300X) |
 | [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | Video diffusion + 3D geometry (ICLR 2026) | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 demo GIFs, 16f×256², ~69s, MI300X) |
 | [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D video generation (Wan2.1 14B + LoRA) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (384p 49 frames, ~44min, MI300X) |
+| [mlzxy/rla-wm](https://github.com/mlzxy/rla-wm) | Visual world model + robot learning (arXiv'26) | ❓ No LICENSE file | amd_gsplat, nvdiffrast (ROCm fork), torch-scatter | ✅ Verified (521M model load, 2.08GB, MI300X) |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | Monocular 4D geometry + motion | 🟡 Academic Only (custom; no commercial; EU restricted) | xformers, pytorch3d | 🔶 Likely |
 
 ### VLA / Embodied AI
@@ -89,6 +107,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 |------|--------|---------|---------------|--------|
 | [yuantianyuan01/FastWAM](https://github.com/yuantianyuan01/FastWAM) | World Action Model (Wan2.2 DiT) | 🟢 MIT | — (pure PyTorch, deepspeed) | ✅ Verified (LIBERO 5/5 success) |
 | [starVLA/starVLA](https://github.com/starVLA/starVLA) | VLA framework (Qwen3-VL) | 🟢 MIT | — (pure PyTorch, deepspeed) | ✅ Verified (LIBERO avg 97.8%) |
+| [JIAjindou/A2A_Flow_Matching](https://github.com/JIAjindou/A2A_Flow_Matching) | Action-to-Action Flow Matching (RSS'26) | ❓ No LICENSE file | — (pure PyTorch, torchcfm) | ✅ Verified (GPU smoke test PASS, MI300X) |
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B inference | 🟢 Apache-2.0 | — (pure PyTorch) | 🔶 Likely |
 
 ### Grasping
@@ -107,6 +126,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | Repo | Domain | License | Status | Blocker |
 |------|--------|---------|--------|---------|
 | [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | Video → 3D reconstruction | 🟢 MIT | 🔶 Stage 0-1b PASS | tinycudann split_k fix |
+| [AIGeeksGroup/Lite3R](https://github.com/AIGeeksGroup/Lite3R) | Lightweight 3D reconstruction compression (FP8 QAT) | ❓ No LICENSE file | 🔶 SDPA/FP8/_scaled_mm OK | torchao >=0.17 requires PyTorch >=2.11 |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D scene understanding (VLA) | 🟢 Apache-2.0 | 🔶 Env ready | Needs ScanNet dataset |
 
 ### ❌ NVIDIA-only (cannot migrate)
@@ -119,25 +139,36 @@ The following repos have been verified on AMD MI300X with ROCm.
 ## Project Structure
 
 ```
-.cursor/skills/rocm-lib-compat/
-  SKILL.md       # Core skill — ROCm lib replacement table + AITER FA3
+rocm3d/
+├── README.md                              # Chinese entry
+├── README_EN.md                           # English entry (this file)
+└── .cursor/skills/
+    ├── rocm-lib-compat/                   # Skill 1: compatibility
+    │   └── SKILL.md                       #   ROCm lib replacement table + AITER FA3
+    ├── rocm-perf-analysis/                # Skill 2: performance analysis
+    │   ├── SKILL.md                       #   TraceLens phase-split roofline workflow
+    │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS table
+    └── rocm-llm-kernels-for-3d/           # Skill 3: AITER kernel replacement
+        ├── SKILL.md                       #   Six ATOM patterns + AITER → 3D mapping + 7-step recipe
+        ├── cookbook.md                    #   Executable code skeletons: model_ops wrappers / loader / compile / validate / version switch
+        └── aiter-api.md                   #   AITER kernel reference (dtype matrix + SGLang/vLLM integration map, self-contained)
 ```
 
-## Core Replacement Table (highlights)
+Design principles:
 
-ROCm 6.4 is the default base (most libs have pre-built wheels). ROCm 7.x only for flash-attn CK acceleration.
-
-| Library | ROCm Solution | ROCm Version |
-|---------|--------------|-------------|
-| flash-attn | `pip install flash-attn --index-url=https://pypi.amd.com/simple` (FA2 Triton) | 6.x |
-| flash-attn | `pip install aiter` — AITER CK backend, **~25% faster** | **7.x** |
-| flash-attn | `pip install aiter` — AITER Triton v3 (auto-selected on 6.x) | 6.x |
-| xformers | `pip install xformers --index-url https://download.pytorch.org/whl/rocm6.4` | 6.4 only |
-| gsplat | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | 6.4 (pkg name `amd_gsplat`, import as `gsplat`) |
-| pytorch3d | Pre-built ROCm wheel | 6.4 only |
-
-See [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) for the full table, AITER integration patterns, and troubleshooting guide.
+- **SKILL.md docs as the primary surface**; no standalone .py scripts maintained. Every executable snippet is inlined as `python -c "..."` / shell blocks that the agent can copy-paste directly.
+- **One responsibility per skill**, no cross-contamination. Each skill can be loaded independently, so a large skill is never force-injected into every context.
+- **External tools first**: prefer [TraceLens](https://github.com/AMD-AGI/TraceLens-internal) / [AITER](https://github.com/ROCm/aiter) / [ATOM](https://github.com/ROCm/ATOM) / [inference-skill](https://github.com/AMD-AIM/inference-skill) over reinvention.
+- **Aligned with AMD's official toolchain**: `rocm-perf-analysis` is a lightweight, 3D-neighborhood port of AMD-AIM's `inferencex-optimize`, reusing the same TraceLens + GPU peak table + phase-split methodology.
 
 ## Contributing
 
-For new ROCm library mappings: update `.cursor/skills/rocm-lib-compat/SKILL.md`
+| What you want to add/change… | Update here |
+|---|---|
+| ROCm library mapping (new repo support) | [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) |
+| Performance analysis methodology (phase split / roofline workflow) | [`.cursor/skills/rocm-perf-analysis/SKILL.md`](.cursor/skills/rocm-perf-analysis/SKILL.md) |
+| New GPU SKU peak TFLOPS data | [`.cursor/skills/rocm-perf-analysis/gpu-specs.md`](.cursor/skills/rocm-perf-analysis/gpu-specs.md) |
+| AITER / ATOM pattern → 3D model replacement recipe | [`.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) |
+| Executable code skeletons (model_ops / loader / compile / validate) | [`.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md) |
+| AITER kernel reference (dtype matrix + integration map) | [`.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md) |
+| Supported repo list (tables above) | This README_EN.md |
