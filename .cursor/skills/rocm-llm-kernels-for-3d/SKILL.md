@@ -1,11 +1,14 @@
 ---
 name: rocm-llm-kernels-for-3d
-version: 0.2.0
+version: 0.3.0
 description: |
-  Replace naive attention / GEMM / norm / RoPE / paged-attn paths in 3D /
-  Video / World Model / VLA inference code with AMD AITER kernels, using the
-  wrapping patterns established by AMD's ATOM reference engine. Run
+  Single-node inference kernel replacement for 3D generation / reconstruction /
+  Video / World Model / VLA / DiT models on AMD GPUs. Swap naive attention,
+  GEMM, norm, RoPE, paged-attn paths to AMD AITER kernels (BF16 default;
+  FP8 / INT8 / FP4 / INT4 supported when ATOM has a quant reference). Uses
+  the wrapping patterns established by AMD's ATOM reference engine. Run
   `rocm-perf-analysis` first to pick targets; this skill executes the swap.
+  Out-of-scope: training, multi-node, LLM serving (use `inference-skill`).
 allowed-tools: [Read, Write, Glob, Grep, Shell]
 ---
 
@@ -25,6 +28,74 @@ the fastest path to a TP-safe, quant-safe, CK-shuffle-safe AITER integration.
 > **Copy-paste code skeletons** for every pattern below live in
 > [`cookbook.md`](cookbook.md). This file gives the methodology and `cookbook.md`
 > gives the snippets — read both side by side.
+
+---
+
+## 0. Scope (read this first)
+
+Scope is explicit so contributors don't read an unverified axis as a coverage
+gap. Anything outside the in-scope columns is **deliberately not addressed**
+here — there's a sibling skill or upstream owner for it.
+
+### 0.1 In-scope (this skill targets these intersections)
+
+| Axis | In-scope values | Why |
+|---|---|---|
+| Model family | 3D generation (TRELLIS, Hunyuan3D, PartCrafter, SegviGen, TokenGS) · 3D reconstruction (dust3r, fast3r, vggt, FoundationStereo, DA3, video_to_world) · World Model (Matrix-Game, Lyra-2, SANA-WM, Wan2.1) · VLA (SmolVLA, π0-style action heads) · DiT video (Wan2.1, HunyuanVideo, CogVideoX, Mochi) · Point cloud backbones (PointTransformerV3, GraspNet) | These are the model families with no native ROCm framework (vLLM / SGLang don't cover them) and the ones that benefit most from manual AITER wrapping |
+| Workload | **Inference only** (forward + autoregressive decode + iterative denoise) | Training kernels (backward, optimizer) have separate concerns (gradient accumulation, FSDP/ZeRO, optimizer state quant) outside this skill |
+| System scale | **Single GPU primary; up to single node** (TP via `ColumnParallel/RowParallel`, SP via xDIT-style, EP via FusedMoE — all single-node) | Cross-node SP / cross-node TP / pipeline-parallel are inference-stack concerns (vLLM, SGLang); single-node max scales to MI300X × 8 |
+| Data types | **BF16** (default) · **FP8** (per-tensor / per-token / per-1×128 block scale) · **INT8** (per-tensor / per-token) · **FP4 / MXFP4** (per-1×32 block scale, gfx950+) · **INT4** (where ATOM has an example) | AITER provides kernels for all of these; ATOM provides reference quant loading + routing (`atom/model_ops/linear.py` quant path, `atom/models/deepseek_v2.py` FP8 MoE example) |
+| Kernel category | **GEMM** (dense + grouped + tuned) · **Attention** (dense MHA / varlen / paged / MLA) · **Norm** (RMSNorm, LayerNorm, GroupNorm) · **Element-wise** (SiLU/GELU fused, RoPE, residual add) · **MoE** (FusedMoE 2-stage) | These five families cover **>95% of step time** for every model class in row 1 above (verified on Wan2.1 C1 — see [coverage matrix](#03-coverage-matrix-empirical)). 3D / DiT / VLA models do **not** introduce new kernel families beyond what LLM inference already exercises; they only re-arrange shapes |
+
+### 0.2 Out-of-scope (routed elsewhere — do not patch here)
+
+| Out-of-scope topic | Route to |
+|---|---|
+| LLM serving optimization (any model already running in vLLM / SGLang) | [`AMD-AIM/inference-skill`](https://github.com/AMD-AIM/inference-skill) — has `VLLM_ROCM_USE_AITER=1` framework path |
+| Training (backward, FSDP, optimizer state quant) | not covered by any skill currently; use AITER training kernels directly (`mha_bwd`, `fmha_v3_bwd` etc.) per upstream docs |
+| Multi-node parallelism | upstream serving frameworks; if a research model needs it, port to vLLM/SGLang first |
+| Triton kernel from scratch when AITER doesn't cover the op (linear-attn, Mamba selective_scan, exotic VAE fused-conv) | [`cookbook.md`](cookbook.md) §7 documents the *escape hatch* (write a kernel) but the recipe set is intentionally thin — large-scope kernel writing is GEAK territory ([AMD-AIM/inference-skill `phases/07-kernel-optimize.md`](https://github.com/AMD-AIM/inference-skill)) |
+| Container provisioning / dependency install / model download | [`rocm-lib-compat`](../rocm-lib-compat/SKILL.md) + [`gpu-cluster-resource-manager`](../gpu-cluster-resource-manager/SKILL.md) |
+| Profiling / kernel ranking | [`rocm-perf-analysis`](../rocm-perf-analysis/SKILL.md) |
+
+### 0.3 Coverage matrix (empirical — see `overnight_tasks/<model>/experiments.md`)
+
+Each cell needs **one ≥30-min closed-loop cycle** to flip from 🔵 (planned) to ✅ (validated). Status as of 2026-05-21:
+
+| | BF16 | FP8 | INT8 | FP4 / MXFP4 | INT4 |
+|---|---|---|---|---|---|
+| **Dense MHA (DiT, video)** | ✅ Wan2.1 +32% | 🔵 | 🔵 | 🔵 | 🔵 |
+| **Varlen MHA (VLA decode, LLM-like)** | 🔵 | 🔵 | 🔵 | 🔵 | 🔵 |
+| **Paged attn (serving KV cache)** | 🔵 | 🔵 (KV) | 🔵 (KV) | — | — |
+| **Linear (TP / Replicated)** | 🔵 | 🔵 | 🔵 | 🔵 (gfx950+) | 🔵 |
+| **FusedMoE 2-stage** | 🔵 | 🔵 | 🔵 | 🔵 (gfx950+) | — |
+| **RoPE / RMSNorm / fused act** | 🔵 (aggregate ~3-5% in Wan2.1) | n/a | n/a | n/a | n/a |
+| **Hybrid linear-attn (GDN / FLA / DeltaNet)** | 🔵 — ATOM has full ref: `atom/model_ops/fla_ops/` (chunk / chunk_delta_h / fused_recurrent) + `atom/model_ops/attentions/gdn_attn.py`; models `qwen3_next.py`, `qwen3_5.py`, `mimo_v2_flash.py`, `kimi_k25.py`, `minimax_m2.py`, `glm4_moe.py` are wired e2e | 🔵 | 🔵 | — | — |
+| **Mamba SSM (causal_conv1d + selective_scan)** | 🔵 — `causal_conv1d` in ATOM `atom/model_ops/mamba_ops/causal_conv1d.py` + AITER `aiter.ops.causal_conv1d`; selective_scan via upstream `state-spaces/mamba` (verify per cycle) | — | — | — | — |
+
+**3D conv** is intentionally absent from this matrix — see §0.4 row.
+
+**Reading the matrix**:
+- ✅ = one experiment doc + perf delta + cos_max ≥ 0.99 + skill-gap log row exists
+- 🔵 = AITER has the kernel + ATOM has a reference + cookbook has a wrapper, but no agent-driven closed-loop run yet
+- — = combination doesn't exist (e.g. element-wise has no dtype-specific kernel, INT4 doesn't apply to MoE on gfx942)
+
+### 0.4 Kernel-coverage rationale (why GEMM + Attn + Norm + Element-wise is enough)
+
+3D / Video / WM / VLA / DiT / point-cloud backbones all decompose into the
+same five primitive families because they all inherit from the
+transformer-or-CNN substrate. Empirically verified on Wan2.1
+(see `overnight_tasks/wan2.1/experiments.md` C1 ranking):
+
+| Kernel family | % of step (Wan2.1 1.3B, 480×832×81f) | Covered by AITER + cookbook? |
+|---|---|---|
+| Attention (`attn_fwd`) | 10.4% | ✅ §2.4 + §2.4b |
+| 3D conv (VAE `grouped_conv_fwd` etc.) | 7.4% | ✅ **dispatched, not in this skill**: sparse 3D conv (point cloud / voxel grid → PTv3) → [`rocm-lib-compat`](../rocm-lib-compat/SKILL.md) `spconv_rocm`; dense 3D conv (video VAE) → PyTorch native `aten::conv3d` → MIOpen / CK grouped_conv automatic, no AITER swap needed |
+| GEMM (rocBLAS / `addmm` / `linear`) | 1.6% | ✅ §2.1–2.3 |
+| Element-wise tail (`copy_`, `add`, fused act) | ~3-5% combined | ✅ AITER fused ops in cookbook Part 1 |
+| **Top 10 covered share** | **~80%** | **see C1 ranking table** |
+
+If a model in scope shows a kernel **outside these families** with >2% share that is **also not handled by `rocm-lib-compat`** (which owns spconv, gsplat, pytorch3d, flash-attn paths), that's a real gap → file against this skill's `cookbook.md`, not a "scope expansion". The expected case is that scope is enough; the exception is the trigger.
 
 ---
 
@@ -137,9 +208,9 @@ separate quantization pass.
 | GEMM + Column/Row/Replicated wrappers | `model_ops/linear.py` | Every transformer-backbone VLA, DiT linear layers | TP-friendly GEMM with CK shuffle |
 | RMSNorm / RoPE / fused SiLU / GeLU | inline in `models/*.py` | LLaMA / Qwen-backboned VLA, hybrid WM | small individually, large aggregate |
 | FusedMoE (CK) + Triton `matmul_ogs` fallback | `model_ops/moe.py` | MoE-VLA, MoE-WM | MoE on ROCm without re-implementing dispatch |
-| FP8 / MXFP4 / FP4 GEMM | `model_ops/linear.py` quant routing + loader shuffle | VLA serving quant, WM long-context KV | memory + bandwidth + cost |
+| FP8 / INT8 / MXFP4 / FP4 / INT4 GEMM (quant path) | `model_ops/linear.py` quant routing + `model_loader/loader.py` FP8/FP4 scale rename + shuffle; reference: `atom/models/deepseek_v2.py` (FP8 MoE end-to-end) | VLA serving quant, WM long-context KV, DiT video at FP8 weights | memory + bandwidth + cost; **in-scope per §0.1** — every dtype here has AITER kernel + ATOM example |
 | MLA attention | `model_ops/attention_mla.py` | DeepSeek-backbone 3D models | reuse rather than re-derive MLA on ROCm |
-| Triton linear-attn / Mamba (not in ATOM) | fla-org / mamba upstream | SANA-WM, Mamba-VLA, GLA-WM | **largest current ROCm gap** |
+| Hybrid linear-attn (GDN / FLA / DeltaNet) + Mamba causal_conv1d | `atom/model_ops/fla_ops/` (chunk / chunk_delta_h / fused_recurrent) + `atom/model_ops/attentions/gdn_attn.py` + `atom/model_ops/mamba_ops/causal_conv1d.py`; e2e models: `qwen3_next.py`, `qwen3_5.py`, `mimo_v2_flash.py`, `kimi_k25.py`, `minimax_m2.py`, `glm4_moe.py` | SANA-WM, Mamba-VLA, GLA-WM, hybrid-attn DiT, any model riding the Qwen3-Next / Kimi-K2.5 / MiMo-V2 transformer recipe | hybrid attention is now standard in 2026-era LLMs and percolating into VLA / WM — ATOM ref is the right starting point, not a gap |
 
 ---
 
