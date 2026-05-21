@@ -99,10 +99,12 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | Backend | ROCm | Install | Perf | 验证 |
 |---------|------|---------|------|------|
 | **FA2 Triton** | **6.4.3** | `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE pip install flash-attn` | baseline | ✅ TRELLIS.2 MI300X |
-| AITER Triton v3 | 6.4.3 | `pip install aiter` (Triton path auto-selected) | ~same | ✅ HyDRA |
-| **AITER CK** | **7.2.1** | `pip install aiter` (CK path auto-selected) | **-25%** | ✅ Matrix-Game (AITER ≥v0.1.13) |
+| AITER Triton v3 | 6.4.3 | `pip install amd-aiter` (Triton path auto-selected) | ~same | ✅ HyDRA |
+| **AITER CK** | **7.2.1** | `pip install amd-aiter` (CK path auto-selected) | **-25%** | ✅ Matrix-Game (AITER ≥v0.1.13) |
 
 FA2 Triton 安装 & 运行均需 `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE`，运行时 Triton JIT 编译内核。
+
+> **⚠️ PyPI package name pitfall** — AMD AITER's PyPI distribution is **`amd-aiter`** (not `aiter`). `pip install aiter` installs the 2019 "asynchronous iterators utility" stub (`aiter-0.13.20191203`), which is unrelated and silently breaks every `from aiter.ops.mha import ...` downstream. Source: [`aiter/setup.py`](https://github.com/ROCm/aiter/blob/main/setup.py) `PACKAGE_NAME = "amd-aiter"`. Default install is JIT mode (~10 s for the wheel + ~30-60 s/kernel on first use); the "30-60 min CK pre-compile" scenario only applies when explicitly setting `PREBUILD_KERNELS=1/2/3`.
 
 ### Exclusion Pattern for requirements.txt
 
@@ -147,7 +149,7 @@ export PYTORCH_ROCM_ARCH="gfx942"   # MI300X/MI300X
 ### When to use AITER vs FA2 Triton
 
 - **大部分场景**: ROCm 6.4.3 上直接 `pip install flash-attn --index-url=pypi.amd.com` 即可，不需要 AITER
-- **需要 CK 加速**: 使用 ROCm 7.2.1 镜像 + `pip install aiter`（AITER ≥v0.1.13）
+- **需要 CK 加速**: 使用 ROCm 7.2.1 镜像 + `pip install amd-aiter`（AITER ≥v0.1.13；PyPI 包名是 `amd-aiter`，**不是** `aiter` — 详见上方 FA tier table 的 pitfall note）
 
 ### Integration Pattern (AITER)
 
