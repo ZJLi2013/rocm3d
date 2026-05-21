@@ -989,17 +989,21 @@ Run this in CI for every env to detect silent regressions.
 
 ## Part 7 — When AITER doesn't cover the kernel
 
-### 7.1 Triton linear-attn / Mamba on ROCm (current gap status, 2026-05)
+### 7.1 Hybrid linear-attn (GDN / FLA / DeltaNet) + Mamba — use ATOM's port, don't re-derive
 
-| Kernel family | Upstream | ROCm status | Action |
+**Status update (2026-05)**: this used to be marked as the "largest ROCm gap" in earlier versions of this cookbook. It isn't anymore. ATOM has imported FLA + GDN end-to-end and wired the Qwen3-Next / Kimi-K2.5 / MiMo-V2 / GLM4 / Minimax-M2 model families through them. Use these as the reference, mirror the wrapper shape in your 3D-side `model_ops/`.
+
+| Kernel family | ATOM source | E2E model reference | When to use |
 |---|---|---|---|
-| Mamba2 / Mamba2-SSD | [state-spaces/mamba](https://github.com/state-spaces/mamba) | Partial — `causal_conv1d` works (also in AITER `ops/causal_conv1d.py`); selective_scan needs verify | Try upstream first; if broken, port to AITER `causal_conv1d` |
-| GLA / RetNet | [fla-org/flash-linear-attention](https://github.com/fla-org/flash-linear-attention) | Unverified on ROCm | Try as-is; file gap issue per SKILL § 6 |
-| Hybrid (Jamba / SANA linear-attn block) | varies | Each variant separate | Treat each upstream kernel as its own port |
+| **GDN (Gated Delta Net)** — Qwen3-Next style hybrid linear attn | `atom/model_ops/attentions/gdn_attn.py` + `atom/plugin/{vllm,sglang}/attention_backend/{attention_gdn,gdn_attn}.py` | `atom/models/qwen3_next.py`, `recipes/Qwen3-Next.md` | Hybrid 3D / VLA / WM that adopts the 2026 standard transformer block (1 full attn + N linear attn) |
+| **FLA (Flash Linear Attention)** ops | `atom/model_ops/fla_ops/{chunk.py,chunk_delta_h.py,fused_recurrent.py}` | `atom/models/qwen3_5.py`, `mimo_v2_flash.py`, `recipes/MiMo-V2-Flash.md`, `Qwen3.5.md` | Pure linear-attn block; "chunk" path = chunked parallel scan; "fused_recurrent" = decode |
+| **Mamba `causal_conv1d`** | `atom/model_ops/mamba_ops/causal_conv1d.py` (= AITER `aiter.ops.causal_conv1d`) | (port per model — Mamba-VLA, hybrid SSM-attn) | Mamba SSM block's depth-wise conv1d |
+| **Mamba `selective_scan`** | not in ATOM; use upstream `state-spaces/mamba` directly | (port per model) | If upstream Triton kernel works on ROCm, ship it; if it breaks, that's a real cookbook gap → file per §6 |
+| **Hybrid attention model layout** (block-level recipe) | `atom/models/qwen3_next.py:Qwen3NextDecoderLayer` (full-attn-every-K-layers, linear-attn otherwise) + `atom/model_config/qwen3_next.py` | — | Read this when designing your own VLA / WM block layout — it's the cleanest reference for how to interleave full vs linear attn |
 
-This is the **largest current gap** (SKILL § 3 table). When you hit it,
-file an issue immediately — these gaps need upstream owner attention, not
-local workarounds.
+**Wrapper pattern**: same as the rest of the cookbook (§2.4 / §2.4b) — wrap the AITER / FLA call in a `model_ops/` module, register a fallback for non-ROCm targets. Don't call `fla_ops.chunk_delta_h(...)` directly from a model file.
+
+**When to actually file a gap (not just "this is hard")**: if you need a hybrid-attn / Mamba kernel that **is not** in the table above and **is not** in `atom/model_ops/`, AND upstream Triton from `fla-org/flash-linear-attention` / `state-spaces/mamba` either doesn't import or produces wrong outputs on gfx942 — that's an upstream issue (`fla-org` or `state-spaces/mamba`), file it per [SKILL.md §6](SKILL.md#6-upstream-gap-routing), not a local workaround.
 
 ### 7.2 ROCm-safe Triton kernel minimal template
 
