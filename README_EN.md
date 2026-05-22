@@ -7,15 +7,15 @@ A set of Cursor agent skills targeting open-source repos in 3D / video / world m
 ## Core Value (three skills, three responsibilities)
 
 ```
-[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-llm-kernels-for-3d ]
- (make the repo run)      (measure + prioritize)       (replace kernels with AITER)
+[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
+ (make the repo run)      (measure + classify kernels)  (optimize by kernel family)
 ```
 
 | Skill | Problem it solves | When to invoke |
 |---|---|---|
-| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | Generate ROCm install scripts for CUDA-only repos (flash-attn / xformers / gsplat / spconv, etc.) | When the repo doesn't run yet |
-| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS; produces a ranked list of "which kernels are worth optimizing" | After the repo runs, when deciding what to optimize |
-| [`rocm-llm-kernels-for-3d`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) | Replicate AMD ATOM/AITER's LLM-side kernel-usage patterns onto 3D models (attention / GEMM / norm / quant / piecewise compile) | After getting the perf-analysis target list, when actually swapping kernels |
+| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | Generate ROCm install scripts and verify whether gsplat / spconv / nvdiffrast / flash-attn use the intended ROCm backend | When the repo doesn't run yet, or when a profile top kernel is library-owned |
+| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS; produces full kernel ranking + forced kernel_type classification + handoff | After the repo runs, when deciding what to optimize |
+| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | Optimize kernel families with a concrete owner: attention / GEMM / conv / sparse conv / collective comm / fused elementwise. `copy/layout`, tensor indexing, and dedicated libraries such as `gsplat` / `nvdiffrast` route through handoff instead | After getting the classified perf-analysis target list |
 
 ## Usage
 
@@ -26,7 +26,7 @@ Invoke the appropriate skill in Cursor based on your scenario:
 
 "Use rocm-perf-analysis skill to run a phase-split roofline report for <model>"
 
-"Use rocm-llm-kernels-for-3d skill to wire AITER attention into <model> following the ATOM pattern"
+"Use rocm-kernels-for-3d skill to optimize <model>'s top kernels by kernel_type from perf-analysis"
 ```
 
 ## Supported Repos
@@ -148,8 +148,8 @@ rocm3d/
     ├── rocm-perf-analysis/                # Skill 2: performance analysis
     │   ├── SKILL.md                       #   TraceLens phase-split roofline workflow
     │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS table
-    └── rocm-llm-kernels-for-3d/           # Skill 3: AITER kernel replacement
-        ├── SKILL.md                       #   Six ATOM patterns + AITER → 3D mapping + 7-step recipe
+    └── rocm-kernels-for-3d/               # Skill 3: kernel-family optimization
+        ├── SKILL.md                       #   attention/GEMM/conv/sparse/comm/elementwise routing + recipes
         ├── cookbook.md                    #   Executable code skeletons: model_ops wrappers / loader / compile / validate / version switch
         └── aiter-api.md                   #   AITER kernel reference (dtype matrix + SGLang/vLLM integration map, self-contained)
 ```
@@ -168,7 +168,7 @@ Design principles:
 | ROCm library mapping (new repo support) | [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) |
 | Performance analysis methodology (phase split / roofline workflow) | [`.cursor/skills/rocm-perf-analysis/SKILL.md`](.cursor/skills/rocm-perf-analysis/SKILL.md) |
 | New GPU SKU peak TFLOPS data | [`.cursor/skills/rocm-perf-analysis/gpu-specs.md`](.cursor/skills/rocm-perf-analysis/gpu-specs.md) |
-| AITER / ATOM pattern → 3D model replacement recipe | [`.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) |
-| Executable code skeletons (model_ops / loader / compile / validate) | [`.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md) |
-| AITER kernel reference (dtype matrix + integration map) | [`.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md) |
+| Kernel-family optimization routing / recipes | [`.cursor/skills/rocm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) |
+| Executable code skeletons (model_ops / loader / compile / validate) | [`.cursor/skills/rocm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-kernels-for-3d/cookbook.md) |
+| AITER kernel reference (dtype matrix + integration map) | [`.cursor/skills/rocm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-kernels-for-3d/aiter-api.md) |
 | Supported repo list (tables above) | This README_EN.md |
