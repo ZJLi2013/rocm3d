@@ -17,11 +17,11 @@ description: |
 
   Companion to:
     - `rocm-lib-compat` (compatibility — get the repo running)
-    - `rocm-llm-kernels-for-3d` (AITER / ATOM pattern replication)
+    - `rocm-kernels-for-3d` (kernel-family optimization after profiling)
 
   This skill is the **measurement and prioritization** half of the perf loop.
   Use this skill *first* to decide what to optimize, then use
-  `rocm-llm-kernels-for-3d` to actually replace kernels.
+  `rocm-kernels-for-3d` to actually replace or reshape kernels.
 allowed-tools: [Read, Write, Glob, Grep, Shell]
 ---
 
@@ -41,13 +41,13 @@ Three things this skill does, and nothing else:
 2. **Phase-split** the trace into compute-heavy and memory-heavy phases, then
    run **per-phase roofline** against the GPU's peak TFLOPS. (Aggregate-only
    roofline hides bottlenecks.)
-3. **Rank kernels** by `priority_score = pct_of_runtime × (1 − roofline_efficiency)`,
-   producing a short list of optimization targets to hand off to
-   `rocm-llm-kernels-for-3d`.
+3. **Rank all kernels** by `priority_score = pct_of_runtime × (1 − roofline_efficiency)`,
+   classify each row by kernel family, and produce a short list of optimization
+   targets to hand off to `rocm-kernels-for-3d` or `rocm-lib-compat`.
 
-Everything else — kernel replacement, AITER wrapping, ATOM pattern replication —
-is the job of `rocm-llm-kernels-for-3d`. This skill stops at producing the
-target list and the perf report.
+Everything else — kernel replacement, AITER wrapping, conv/sparse/comm
+optimization — is the job of `rocm-kernels-for-3d`. This skill stops at
+producing the classified target list and the perf report.
 
 ---
 
@@ -298,13 +298,42 @@ This produces, per phase:
 - `ops_summary_by_category.csv` — time grouped by GEMM / attention / comm / norm / etc.
 - `gpu_timeline.csv` — % computation / communication / idle
 
-### Step 6 — Rank kernels for optimization
+### Step 6 — Rank and classify kernels for optimization
 
 ```bash
 python3 - <<'PY'
 import csv, glob, os
 PHASES = ["prefilldecode", "decode"]
 rows = []
+
+def classify(name, cat):
+    s = f"{name} {cat}".lower()
+    if any(x in s for x in ("nccl", "rccl", "allreduce", "all_reduce", "allgather", "all_gather", "reduce_scatter")):
+        return "collective_comm", "distributed comm: AITER/Iris comm path if topology+shape match; otherwise framework/RCCL"
+    if any(x in s for x in ("flash_attn", "paged_attn", "sdpa", "attn_fwd", "ck_fmha", "mha_fwd", "mla")):
+        return "attention", "rocm-kernels-for-3d attention/AITER section"
+    if any(x in s for x in ("hipblas", "rocblas", "cijk_", "aten::mm", "aten::addmm", "aten::matmul", "aten::linear")):
+        if any(q in s for q in ("fp8", "mxfp4", "dequant", "quant")):
+            return "gemm_quant", "rocm-kernels-for-3d AITER quant GEMM path"
+        return "gemm", "rocm-kernels-for-3d GEMM/linear path"
+    if any(x in s for x in ("conv3d", "conv2d", "convolution", "miopen_convolution", "grouped_conv", "depthwise", "im3d2col")):
+        return "conv", "rocm-kernels-for-3d dense/video conv + layout checklist"
+    if any(x in s for x in ("spconv", "indice", "sparseconv")):
+        return "sparse_conv", "rocm-lib-compat backend check, then rocm-kernels-for-3d sparse-conv TODO"
+    if any(x in s for x in ("gsplat", "raster", "nvdiffrast", "interpolate", "antialias", "texture")):
+        return "external_raster", "rocm-lib-compat backend check; route to owning library/upstream"
+    if any(x in s for x in ("copy_", "contiguous", "transpose", "permute", "view_as", "reshape")):
+        return "copy_layout", "model-side layout cleanup; no generic AITER kernel owner"
+    if any(x in s for x in ("scatter", "gather", "index_select", "index_add", "segment", "sort", "topk")):
+        return "indexing_scatter_gather", "model/library indexing path; not AITER comm unless it is all_gather/reduce_scatter"
+    if any(x in s for x in ("rms_norm", "layer_norm", "add_rmsnorm", "group_norm")):
+        return "norm", "rocm-kernels-for-3d norm/fused elementwise path"
+    if any(x in s for x in ("rope", "silu", "gelu", "elementwise", "mul", "add")):
+        return "elementwise", "AITER only for known fused activation/quant patterns; generic add/mul -> graph fusion"
+    if any(x in s for x in ("chunk_state", "ssd_", "mamba", "gla_", "selective_scan")):
+        return "linear_attn_mamba", "rocm-kernels-for-3d linear-attn/Mamba TODO or upstream"
+    return "other", "manual triage; add a rocm-kernels-for-3d TODO if >2%"
+
 for ph in PHASES:
     f = f"./results/tracelens_{ph}_csvs/unified_perf_summary.csv"
     if not os.path.isfile(f): continue
@@ -313,20 +342,28 @@ for ph in PHASES:
             pct  = float(r.get("Percentage (%)", 0) or 0)
             roof = float(r.get("Pct Roofline_mean", 0) or 0)
             score = pct * (1.0 - roof / 100.0)
-            rows.append((score, ph, r.get("name", ""), r.get("op category", ""), pct, roof))
+            name = r.get("name", "")
+            cat = r.get("op category", "")
+            ktype, handoff = classify(name, cat)
+            rows.append((score, ph, ktype, handoff, name, cat, pct, roof))
         except ValueError: continue
 
 rows.sort(reverse=True)
-print(f"{'score':>7} {'phase':>13} {'pct':>6} {'roof%':>6}  category / op")
-print("-" * 90)
-for score, ph, name, cat, pct, roof in rows[:20]:
-    print(f"{score:7.2f} {ph:>13} {pct:5.1f}% {roof:5.1f}%  {cat:<10s} {name[:50]}")
+print(f"{'score':>7} {'phase':>13} {'pct':>6} {'roof%':>6} {'type':>16}  op -> handoff")
+print("-" * 120)
+for score, ph, ktype, handoff, name, cat, pct, roof in rows[:20]:
+    print(f"{score:7.2f} {ph:>13} {pct:5.1f}% {roof:5.1f}% {ktype:>16}  {name[:48]} -> {handoff}")
 PY
 ```
 
-Output is the hand-off to `rocm-llm-kernels-for-3d`: top 20 ops ranked by
-`pct × (1 − roofline_efficiency)`. Items with high score are both
-time-consuming **and** far from peak — the right targets to optimize.
+Output is the hand-off table: top 20 ops ranked by
+`pct × (1 − roofline_efficiency)`, each with a forced `kernel_type` and next
+owner. Items with high score are both time-consuming **and** far from peak.
+Do not drop conv/sparse/comm/elementwise rows just because attention is small.
+Route only rows with a concrete owner to `rocm-kernels-for-3d`. Route external
+library raster kernels (`gsplat`, `nvdiffrast`, pytorch3d raster), generic
+layout/copy, and indexing scatter/gather away from kernel replacement unless a
+minimal reproducer identifies a real kernel owner.
 
 ---
 
@@ -380,20 +417,25 @@ so the right tool/skill picks it up later:
 
 | Kernel-type label | Identifier substrings | Hand off to |
 |---|---|---|
-| `attention` | `flash_attn`, `paged_attn`, `sdpa`, `ck_fmha`, `MLA` | `rocm-llm-kernels-for-3d` § AITER attention pattern |
-| `gemm` | `hipblas`, `Cijk_*`, `aiter::gemm`, `aten::mm`, `aten::addmm` | `rocm-llm-kernels-for-3d` § AITER GEMM + Column/Row/Replicated wrappers |
+| `attention` | `flash_attn`, `paged_attn`, `sdpa`, `attn_fwd`, `ck_fmha`, `MLA` | `rocm-kernels-for-3d` attention / AITER pattern |
+| `gemm` | `hipblas`, `rocblas`, `Cijk_*`, `aten::mm`, `aten::addmm`, `aten::matmul`, `aten::linear` | `rocm-kernels-for-3d` GEMM + Column/Row/Replicated wrappers |
 | `gemm_fp8` / `gemm_fp4` | `mxfp4_*`, `fp8_*`, `dequant`, kernel name contains precision | AITER quant path + ATOM loader shuffle |
 | `moe` | `fused_moe`, `moe_gemm`, `topk`, `permute` | AITER FusedMoE wrapper |
-| `norm` | `rms_norm`, `layer_norm`, `add_rmsnorm` | AITER RMSNorm; memory-bound — target `vector_*` peak |
-| `rope` / `activation` | `rope`, `silu`, `gelu` | AITER fused activation; memory-bound |
-| `comm` | `nccl*`, `allreduce`, `allgather`, `rccl*` | **Exclude from optimization** — pure network; report separately |
+| `conv` | `conv2d`, `conv3d`, `convolution`, `miopen_convolution`, `grouped_conv`, `depthwise`, `Im3d2Col` | `rocm-kernels-for-3d` dense/video conv + layout checklist |
+| `sparse_conv` | `spconv`, `indice`, `sparseconv` | `rocm-lib-compat` backend check, then `rocm-kernels-for-3d` sparse-conv TODO |
+| `collective_comm` | `nccl`, `rccl`, `all_reduce`, `all_gather`, `reduce_scatter` | Distributed comm path. AITER has Iris `all_gather`, `reduce_scatter`, and fused reduce-scatter+norm+quant+all-gather kernels; use only when topology/shape match |
+| `external_raster` | `gsplat`, `raster`, `nvdiffrast`, `interpolate`, `antialias`, `texture` | `rocm-lib-compat` backend check; owning library/upstream. Not a generic `rocm-kernels-for-3d` target |
+| `copy_layout` | `copy_`, `contiguous`, `transpose`, `permute`, layout conversion kernels | Model-side layout cleanup; no generic AITER kernel owner |
+| `indexing_scatter_gather` | `scatter`, `gather`, `index_select`, `index_add`, segment ops | Model/library indexing path. Do not confuse with collective `all_gather` / `reduce_scatter` |
+| `norm` | `rms_norm`, `layer_norm`, `add_rmsnorm`, `group_norm` | `rocm-kernels-for-3d` fused norm path; memory-bound — target `vector_*` peak |
+| `rope` / `activation` / `elementwise` | `rope`, `silu`, `gelu`, `swiglu`, activation+quant; generic `add`/`mul` only if fused pattern exists | AITER fused activation/quant or graph fusion; not arbitrary elementwise replacement |
 | `linear_attn` / `mamba` | `chunk_state`, `ssd_*`, `mamba_*`, `gla_*` | fla-org / mamba upstream (largest current ROCm gap) |
-| `3d_specific` | `spconv*`, `gsplat*`, `nvdiffrast*`, `pointops*` | `rocm-lib-compat` skill (compatibility-side) |
 | `other` | everything else | manual triage |
 
-When generating the priority-ranked list (§3 step 6), **exclude `comm`** from
-the optimization budget — comm time is a network problem, not a kernel problem.
-Quote it separately in the report.
+When generating the priority-ranked list (§3 step 6), keep
+`collective_comm` separate from compute kernels. It is actionable only when the
+workload is distributed and AITER/Iris or framework/RCCL routing is a plausible
+owner; otherwise quote it separately as communication overhead.
 
 ---
 
@@ -430,11 +472,11 @@ or `overnight_tasks/<repo>/perf.md`):
 
 (from §3 step 6 — score = pct × (1 − roofline_efficiency); comm excluded)
 
-| Score | Phase   | Op (category)               | Pct of phase | Pct Roofline | Kernel type |
-|------:|---------|-----------------------------|-------------:|-------------:|-------------|
-| ...   | decode  | ck_fmha_… (attention)       | 32%          | 18%          | attention   |
-| ...   | prefill | hipblas Cijk_… (GEMM)       | 21%          | 47%          | gemm        |
-| ...   | decode  | add_rmsnorm (norm)          |  6%          | 22%          | norm        |
+| Score | Phase   | Op (category)               | Pct of phase | Pct Roofline | Kernel type | Handoff |
+|------:|---------|-----------------------------|-------------:|-------------:|-------------|---------|
+| ...   | decode  | ck_fmha_… (attention)       | 32%          | 18%          | attention   | `rocm-kernels-for-3d` attention/AITER |
+| ...   | prefill | `miopen_convolution`        | 45%          | n/a          | conv        | `rocm-kernels-for-3d` conv |
+| ...   | decode  | `copy_` / transpose         |  8%          | n/a          | copy_layout | layout elimination |
 
 ## GEMM Roofline (per phase)
 
@@ -453,11 +495,11 @@ or `overnight_tasks/<repo>/perf.md`):
 
 ## Optimization Plan
 
-(hand-off to `rocm-llm-kernels-for-3d`)
+(hand-off to `rocm-kernels-for-3d` / `rocm-lib-compat`)
 
-1. <op A> — replace with AITER kernel + ATOM Pattern X (expected speedup …)
-2. <op B> — re-shape into TP-friendly GEMM (Pattern C)
-3. <op C> — kernel gap: file upstream issue to AITER / mamba / fla-org
+1. <op A> — kernel_type=<...>, selected owner=<...>, expected speedup …
+2. <op B> — if conv/sparse/comm/fused-activation, run that family checklist before attention/GEMM work; if copy/layout/indexing/external raster, route to the named owner instead of inventing a kernel recipe
+3. <op C> — kernel gap: file upstream issue or add a `rocm-kernels-for-3d` TODO
 
 ## Raw artifacts
 
@@ -474,16 +516,16 @@ or `overnight_tasks/<repo>/perf.md`):
 | When you need to… | Use this | Not this |
 |---|---|---|
 | Get a repo running on ROCm | [`rocm-lib-compat`](../rocm-lib-compat/SKILL.md) | this skill |
-| Decide **what** to optimize | **this skill** | rocm-llm-kernels-for-3d |
-| Actually replace a kernel with AITER, ATOM-style | [`rocm-llm-kernels-for-3d`](../rocm-llm-kernels-for-3d/SKILL.md) | this skill |
+| Decide **what** to optimize | **this skill** | rocm-kernels-for-3d |
+| Actually optimize a classified kernel family | [`rocm-kernels-for-3d`](../rocm-kernels-for-3d/SKILL.md) | this skill |
 | Capture a trace / triage GPU fault / numerical bisect | ATOM repo `.claude/skills/` (`capture-trace`, `debug-agent-locate-kernel`, `dump-bisect-debug`) | reinvent here |
 | Full LLM serving optimization (vLLM / SGLang) | [AMD-AIM/inference-skill](https://github.com/AMD-AIM/inference-skill) `inferencex-optimize` | this skill (use AMD's full pipeline) |
 
 **Mental model**:
 
 ```
-[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-llm-kernels-for-3d ]
- (make it run)           (measure + prioritize)        (replace kernels, ATOM-style)
+[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
+ (make it run)           (measure + classify)           (optimize selected family)
 ```
 
 ---

@@ -7,15 +7,15 @@
 ## 核心价值（三个 skill, 三个职责）
 
 ```
-[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-llm-kernels-for-3d ]
- (让 repo 跑起来)         (量化分析 + 优先级排序)      (用 AITER 替换 kernel)
+[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
+ (让 repo 跑起来)         (量化分析 + kernel 分类)      (按 kernel family 优化)
 ```
 
 | Skill | 解决什么问题 | 何时调用 |
 |---|---|---|
-| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | 给 CUDA-only repo 出 ROCm 安装脚本（flash-attn / xformers / gsplat / spconv 等） | repo 还跑不起来时 |
-| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS，输出"哪些 kernel 值得优化"排序表 | repo 跑通后，决定优化方向时 |
-| [`rocm-llm-kernels-for-3d`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) | 把 AMD ATOM/AITER 在 LLM 上的 kernel 使用 pattern 复刻到 3D 模型上（attention / GEMM / norm / quant / piecewise compile） | 拿到 perf-analysis 的优化清单后，动手替换时 |
+| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | 给 CUDA-only repo 出 ROCm 安装脚本，并确认 gsplat / spconv / nvdiffrast / flash-attn 等是否走正确 ROCm backend | repo 还跑不起来，或 profile top 落在库级 kernel 时 |
+| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS，输出全 kernel ranking + 强制 kernel_type 分类 + handoff | repo 跑通后，决定优化方向时 |
+| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | 按实际 profile 优化有明确 kernel owner 的 family：attention / GEMM / conv / sparse conv / collective comm / fused elementwise 等；`copy/layout`、tensor indexing、`gsplat` / `nvdiffrast` 等走 handoff routing | 拿到 perf-analysis 的分类优化清单后 |
 
 ## 使用方式
 
@@ -26,7 +26,7 @@
 
 "使用 rocm-perf-analysis skill，给 <model> 跑 phase-split roofline 报告"
 
-"使用 rocm-llm-kernels-for-3d skill，按 ATOM pattern 把 AITER attention 接入 <model>"
+"使用 rocm-kernels-for-3d skill，根据 perf-analysis 的 kernel_type 优化 <model> 的 top kernels"
 ```
 
 
@@ -150,8 +150,8 @@ rocm3d/
     ├── rocm-perf-analysis/                # Skill 2：性能分析
     │   ├── SKILL.md                       #   TraceLens phase-split roofline 工作流
     │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS 表
-    └── rocm-llm-kernels-for-3d/           # Skill 3：AITER kernel 替换
-        ├── SKILL.md                       #   ATOM 6 大 pattern + AITER → 3D 模型映射 + 7 步 recipe
+    └── rocm-kernels-for-3d/               # Skill 3：按 kernel family 优化
+        ├── SKILL.md                       #   attention/GEMM/conv/sparse/comm/elementwise 等优化 routing + recipe
         ├── cookbook.md                    #   可执行代码骨架：model_ops wrappers / loader / compile / validate / version switch
         └── aiter-api.md                   #   AITER kernel 全景速查（dtype 矩阵 + SGLang/vLLM 集成清单，自包含）
 ```
@@ -170,7 +170,7 @@ rocm3d/
 | ROCm 库映射（新增 repo 支持） | [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) |
 | 性能分析方法（phase split / roofline workflow） | [`.cursor/skills/rocm-perf-analysis/SKILL.md`](.cursor/skills/rocm-perf-analysis/SKILL.md) |
 | 新 GPU SKU peak TFLOPS 数据 | [`.cursor/skills/rocm-perf-analysis/gpu-specs.md`](.cursor/skills/rocm-perf-analysis/gpu-specs.md) |
-| AITER / ATOM pattern → 3D 模型替换 recipe | [`.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-llm-kernels-for-3d/SKILL.md) |
-| 可执行代码骨架（model_ops / loader / compile / validate） | [`.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-llm-kernels-for-3d/cookbook.md) |
-| AITER kernel 全景速查（dtype 矩阵 + 集成清单） | [`.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-llm-kernels-for-3d/aiter-api.md) |
+| Kernel family 优化 routing / recipe | [`.cursor/skills/rocm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) |
+| 可执行代码骨架（model_ops / loader / compile / validate） | [`.cursor/skills/rocm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-kernels-for-3d/cookbook.md) |
+| AITER kernel 全景速查（dtype 矩阵 + 集成清单） | [`.cursor/skills/rocm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-kernels-for-3d/aiter-api.md) |
 | 已支持的 repo 列表（上方表格） | 本 README.md |

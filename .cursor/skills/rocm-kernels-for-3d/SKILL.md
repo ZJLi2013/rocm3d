@@ -1,29 +1,32 @@
 ---
-name: rocm-llm-kernels-for-3d
-version: 0.3.0
+name: rocm-kernels-for-3d
+version: 0.4.0
 description: |
   Single-node inference kernel replacement for 3D generation / reconstruction /
-  Video / World Model / VLA / DiT models on AMD GPUs. Swap naive attention,
-  GEMM, norm, RoPE, paged-attn paths to AMD AITER kernels (BF16 default;
-  FP8 / INT8 / FP4 / INT4 supported when ATOM has a quant reference). Uses
-  the wrapping patterns established by AMD's ATOM reference engine. Run
-  `rocm-perf-analysis` first to pick targets; this skill executes the swap.
+  Video / World Model / VLA / DiT models on AMD GPUs. Optimizes the kernel
+  families that actually dominate the profile: attention, GEMM, norm, RoPE,
+  conv2d/conv3d/depthwise/grouped conv, sparse conv, collective comm,
+  and fused elementwise/activation paths. Uses AITER/ATOM
+  wrappers where they fit, and routes non-AITER kernels to family-specific
+  recipes or TODOs. Run `rocm-perf-analysis` first to pick targets.
   Out-of-scope: training, multi-node, LLM serving (use `inference-skill`).
 allowed-tools: [Read, Write, Glob, Grep, Shell]
 ---
 
-# ROCm AITER Kernels for 3D / Video / WM / VLA
+# ROCm Kernels for 3D / Video / WM / VLA
 
-The single move this skill teaches:
+The single rule this skill teaches:
 
-> **Lift ATOM's `model_ops/` shape into the 3D model. Route every AITER call
-> through a wrapper; never call `aiter.flash_attn_func` / `aiter.gemm` directly
-> from a model file.**
+> **Optimize the kernels that dominate the measured profile. Do not assume
+> attention is the target.**
 
-ATOM is AMD's vLLM-like reference engine built on AITER. It is the
-canonical, AMD-maintained example of "how to use AITER kernels correctly in
-a real model". Reading ATOM's `model_ops/` and copying its wrapper shape is
-the fastest path to a TP-safe, quant-safe, CK-shuffle-safe AITER integration.
+For attention/GEMM/norm/quant/collective-comm paths, ATOM/AITER provide
+concrete wrapper or kernel references. For conv and sparse conv, use the family
+routing below. For `copy_`, layout conversion, and tensor indexing
+`scatter/gather`, this skill only documents why they are **not** AITER kernel
+replacement targets; route them to model-side graph/dataflow cleanup. Dedicated
+renderers such as `gsplat` and `nvdiffrast` are not optimized here; route those
+to `rocm-lib-compat` for backend verification and upstream/library follow-up.
 
 > **Copy-paste code skeletons** for every pattern below live in
 > [`cookbook.md`](cookbook.md). This file gives the methodology and `cookbook.md`
@@ -41,11 +44,11 @@ here — there's a sibling skill or upstream owner for it.
 
 | Axis | In-scope values | Why |
 |---|---|---|
-| Model family | 3D generation (TRELLIS, Hunyuan3D, PartCrafter, SegviGen, TokenGS) · 3D reconstruction (dust3r, fast3r, vggt, FoundationStereo, DA3, video_to_world) · World Model (Matrix-Game, Lyra-2, SANA-WM, Wan2.1) · VLA (SmolVLA, π0-style action heads) · DiT video (Wan2.1, HunyuanVideo, CogVideoX, Mochi) · Point cloud backbones (PointTransformerV3, GraspNet) | These are the model families with no native ROCm framework (vLLM / SGLang don't cover them) and the ones that benefit most from manual AITER wrapping |
+| Model family | 3D generation (TRELLIS, Hunyuan3D, PartCrafter, SegviGen, TokenGS) · 3D reconstruction (dust3r, fast3r, vggt, FoundationStereo, DA3, video_to_world) · World Model (Matrix-Game, Lyra-2, SANA-WM, Wan2.1) · VLA (SmolVLA, π0-style action heads) · DiT video (Wan2.1, HunyuanVideo, CogVideoX, Mochi) · Point cloud backbones (PointTransformerV3, GraspNet) | These are the model families with no native ROCm framework (vLLM / SGLang don't cover them) and the ones that need direct kernel-family optimization after profiling |
 | Workload | **Inference only** (forward + autoregressive decode + iterative denoise) | Training kernels (backward, optimizer) have separate concerns (gradient accumulation, FSDP/ZeRO, optimizer state quant) outside this skill |
 | System scale | **Single GPU primary; up to single node** (TP via `ColumnParallel/RowParallel`, SP via xDIT-style, EP via FusedMoE — all single-node) | Cross-node SP / cross-node TP / pipeline-parallel are inference-stack concerns (vLLM, SGLang); single-node max scales to MI300X × 8 |
 | Data types | **BF16** (default) · **FP8** (per-tensor / per-token / per-1×128 block scale) · **INT8** (per-tensor / per-token) · **FP4 / MXFP4** (per-1×32 block scale, gfx950+) · **INT4** (where ATOM has an example) | AITER provides kernels for all of these; ATOM provides reference quant loading + routing (`atom/model_ops/linear.py` quant path, `atom/models/deepseek_v2.py` FP8 MoE example) |
-| Kernel category | **GEMM** (dense + grouped + tuned) · **Attention** (dense MHA / varlen / paged / MLA) · **Norm** (RMSNorm, LayerNorm, GroupNorm) · **Element-wise** (SiLU/GELU fused, RoPE, residual add) · **MoE** (FusedMoE 2-stage) | These five families cover **>95% of step time** for every model class in row 1 above (verified on Wan2.1 C1 — see [coverage matrix](#03-coverage-matrix-empirical)). 3D / DiT / VLA models do **not** introduce new kernel families beyond what LLM inference already exercises; they only re-arrange shapes |
+| Kernel category | **Attention** · **GEMM / quant GEMM** · **Norm / RoPE / activation** · **MoE** · **collective comm** · **conv2d / conv3d / depthwise / grouped conv** · **sparse conv** | Only families with a plausible kernel owner or concrete next step are optimization targets here. `copy_` / layout conversion / tensor indexing are reported by perf-analysis but are model/dataflow cleanup, not generic kernel replacement. |
 
 ### 0.2 Out-of-scope (routed elsewhere — do not patch here)
 
@@ -54,7 +57,8 @@ here — there's a sibling skill or upstream owner for it.
 | LLM serving optimization (any model already running in vLLM / SGLang) | [`AMD-AIM/inference-skill`](https://github.com/AMD-AIM/inference-skill) — has `VLLM_ROCM_USE_AITER=1` framework path |
 | Training (backward, FSDP, optimizer state quant) | not covered by any skill currently; use AITER training kernels directly (`mha_bwd`, `fmha_v3_bwd` etc.) per upstream docs |
 | Multi-node parallelism | upstream serving frameworks; if a research model needs it, port to vLLM/SGLang first |
-| Triton kernel from scratch when AITER doesn't cover the op (linear-attn, Mamba selective_scan, exotic VAE fused-conv) | [`cookbook.md`](cookbook.md) §7 documents the *escape hatch* (write a kernel) but the recipe set is intentionally thin — large-scope kernel writing is GEAK territory ([AMD-AIM/inference-skill `phases/07-kernel-optimize.md`](https://github.com/AMD-AIM/inference-skill)) |
+| Triton / HIP kernel from scratch when no maintained ROCm path exists | [`cookbook.md`](cookbook.md) §7 documents the escape hatch. Prefer existing maintained paths first (`spconv_rocm`, AITER/ATOM, torch/ROCm backends) before writing a kernel. |
+| Library-specific rasterizers (`gsplat`, `nvdiffrast`, pytorch3d raster ops) | `rocm-lib-compat` verifies the correct ROCm backend and routes to the owning library/upstream. This skill does not hand-optimize those renderer kernels. |
 | Container provisioning / dependency install / model download | [`rocm-lib-compat`](../rocm-lib-compat/SKILL.md) + [`gpu-cluster-resource-manager`](../gpu-cluster-resource-manager/SKILL.md) |
 | Profiling / kernel ranking | [`rocm-perf-analysis`](../rocm-perf-analysis/SKILL.md) |
 
@@ -72,30 +76,42 @@ Each cell needs **one ≥30-min closed-loop cycle** to flip from 🔵 (planned) 
 | **RoPE / RMSNorm / fused act** | 🔵 (aggregate ~3-5% in Wan2.1) | n/a | n/a | n/a | n/a |
 | **Hybrid linear-attn (GDN / FLA / DeltaNet)** | 🔵 — ATOM has full ref: `atom/model_ops/fla_ops/` (chunk / chunk_delta_h / fused_recurrent) + `atom/model_ops/attentions/gdn_attn.py`; models `qwen3_next.py`, `qwen3_5.py`, `mimo_v2_flash.py`, `kimi_k25.py`, `minimax_m2.py`, `glm4_moe.py` are wired e2e | 🔵 | 🔵 | — | — |
 | **Mamba SSM (causal_conv1d + selective_scan)** | 🔵 — `causal_conv1d` in ATOM `atom/model_ops/mamba_ops/causal_conv1d.py` + AITER `aiter.ops.causal_conv1d`; selective_scan via upstream `state-spaces/mamba` (verify per cycle) | — | — | — | — |
-
-**3D conv** is intentionally absent from this matrix — see §0.4 row.
+| **Dense video/VAE conv** | 🔵 SANA-WM surfaced this as top bottleneck; TODO recipe covers phase split + layout diagnosis, not MIOpen tuning | — | — | — | — |
+| **Sparse conv / voxel conv** | ✅ `spconv_rocm` via `rocm-lib-compat`; perf recipe TODO lives here | — | — | — | — |
+| **Collective comm (all-reduce / all-gather / reduce-scatter)** | 🔵 AITER has `ops/triton/comms/{all_gather,reduce_scatter}` and fused reduce-scatter + RMSNorm + quant + all-gather; use only for distributed TP/EP/SP paths | — | — | — | — |
+| **Fused activation / elementwise** | 🔵 AITER has fused SiLU-mul and activation+FP8/FP4 quant paths; generic add/mul/copy is not covered | n/a | n/a | n/a | n/a |
 
 **Reading the matrix**:
 - ✅ = one experiment doc + perf delta + cos_max ≥ 0.99 + skill-gap log row exists
 - 🔵 = AITER has the kernel + ATOM has a reference + cookbook has a wrapper, but no agent-driven closed-loop run yet
 - — = combination doesn't exist (e.g. element-wise has no dtype-specific kernel, INT4 doesn't apply to MoE on gfx942)
 
-### 0.4 Kernel-coverage rationale (why GEMM + Attn + Norm + Element-wise is enough)
+### 0.4 Kernel-coverage rationale (why all kernel families stay in scope)
 
-3D / Video / WM / VLA / DiT / point-cloud backbones all decompose into the
-same five primitive families because they all inherit from the
-transformer-or-CNN substrate. Empirically verified on Wan2.1
-(see `overnight_tasks/wan2.1/experiments.md` C1 ranking):
+3D / Video / WM / VLA / DiT / point-cloud workloads share transformer kernels
+with LLMs, but they also surface conv, sparse, collective comm, and fused
+activation bottlenecks. `rocm-perf-analysis` decides the target; this skill
+must not narrow the action space to attention/GEMM.
 
-| Kernel family | % of step (Wan2.1 1.3B, 480×832×81f) | Covered by AITER + cookbook? |
+| Kernel family | Example signal | Owner / next action |
 |---|---|---|
-| Attention (`attn_fwd`) | 10.4% | ✅ §2.4 + §2.4b |
-| 3D conv (VAE `grouped_conv_fwd` etc.) | 7.4% | ✅ **dispatched, not in this skill**: sparse 3D conv (point cloud / voxel grid → PTv3) → [`rocm-lib-compat`](../rocm-lib-compat/SKILL.md) `spconv_rocm`; dense 3D conv (video VAE) → PyTorch native `aten::conv3d` → MIOpen / CK grouped_conv automatic, no AITER swap needed |
-| GEMM (rocBLAS / `addmm` / `linear`) | 1.6% | ✅ §2.1–2.3 |
-| Element-wise tail (`copy_`, `add`, fused act) | ~3-5% combined | ✅ AITER fused ops in cookbook Part 1 |
-| **Top 10 covered share** | **~80%** | **see C1 ranking table** |
+| Attention (`attn_fwd`, `sdpa`, `flash_attn`) | Wan2.1 C2: attention swap helped when attention was top target | AITER/ATOM wrapper (§2-3) |
+| Dense video/VAE conv (`conv3d`, grouped/depthwise conv, `Im3d2Col`) | SANA-WM P1: conv dominated, attention only ~3.7% | Conv/layout TODO (§3.1); do not stop at "not AITER" |
+| Sparse conv (`spconv*`, indice pairs) | PointTransformerV3 / voxel backbones | `spconv_rocm` + sparse-conv TODO (§3.1) |
+| Collective comm (`all_reduce`, `all_gather`, `reduce_scatter`) | TP/EP/SP distributed inference | AITER comm / Iris or framework comm path (§3.1) |
+| Fused activation / elementwise (`silu`, `gelu`, `swiglu`, activation+quant) | MLP / MoE / quant paths | AITER fused activation or quant-fusion path (§3.1) |
+| GEMM / linear | rocBLAS / hipBLASLt / AITER GEMM | AITER/ATOM wrapper (§2-3) |
 
-If a model in scope shows a kernel **outside these families** with >2% share that is **also not handled by `rocm-lib-compat`** (which owns spconv, gsplat, pytorch3d, flash-attn paths), that's a real gap → file against this skill's `cookbook.md`, not a "scope expansion". The expected case is that scope is enough; the exception is the trigger.
+External library kernels (`gsplat`, `nvdiffrast`, pytorch3d raster ops) should
+still appear in perf reports, but they route to `rocm-lib-compat` backend
+sanity checks and the owning upstream library, not to this generic kernel skill.
+Generic `copy_`, layout conversion, and tensor indexing `scatter/gather` should
+also appear in perf reports, but without a concrete kernel owner they route to
+model-side cleanup rather than this skill.
+
+If a kernel family is >2% of runtime and has no recipe here, that is a skill
+gap. Record it as a TODO or upstream issue; do not silently pivot back to
+attention/GEMM just because those recipes are better documented.
 
 ---
 
@@ -214,13 +230,34 @@ separate quantization pass.
 
 ---
 
+### 3.1 Non-AITER kernel families (first-class targets)
+
+These are not second-class "compatibility" problems. If they top the profile,
+they are the optimization target.
+
+| Kernel family | First actions | Current status |
+|---|---|---|
+| Dense video/VAE conv (`conv2d`, `conv3d`, depthwise/grouped conv, `Im3d2Col`) | Split denoise vs VAE encode/decode; inspect layout churn around conv; try `channels_last` / `channels_last_3d` only with correctness + latency checks; try `torch.compile` on stable VAE blocks; record CK/MIOpen-dispatched kernel names but do not rely on old MIOpen tuning as the main plan | TODO recipe, motivated by SANA-WM P1 |
+| Sparse conv / voxel conv (`spconv*`, indice pairs) | Confirm `spconv_rocm` backend from `rocm-lib-compat`; profile indice generation vs GEMM vs gather/scatter; compare against dense fallback only for sanity | Validated compatibility, perf TODO |
+| Collective comm (`all_reduce`, `all_gather`, `reduce_scatter`) | Only for distributed TP/EP/SP inference. Check whether framework comm is NCCL/RCCL/custom, then evaluate AITER/Iris comm kernels or fused comm+norm+quant only if topology and tensor shapes match | AITER has concrete comm kernels; not related to tensor indexing `scatter/gather` |
+| Fused activation / elementwise (`silu`, `gelu`, `swiglu`, activation+quant) | If activation or activation+quant is a top op, map to AITER fused SiLU-mul / activation+FP8/FP4 quant / fused MoE paths; generic `aten::add`/`aten::mul` should first try graph fusion, not a hand-written kernel | AITER covers specific fused patterns, not arbitrary elementwise |
+
+When this table says TODO, the correct agent behavior is to document the gap
+and run the smallest diagnostic experiment, not to declare the perf loop done.
+
+---
+
 ## 4. Standard recipe
 
 ### Step 1 — Identify targets
 
 Run [`rocm-perf-analysis`](../rocm-perf-analysis/SKILL.md). It produces the
 ranked list of kernels worth optimizing (`pct × (1 − roofline_efficiency)`).
-The top items are the targets for steps 2–6.
+The top items are the targets for steps 2–7. If the top target is conv, sparse,
+collective comm, or fused activation, use §3.1 before any attention/GEMM work.
+If the top target is generic `copy_`, layout conversion, tensor indexing
+`scatter/gather`, `gsplat`, `nvdiffrast`, or pytorch3d raster, route away from
+this skill to the owner named by `rocm-perf-analysis`.
 
 Do not hand-roll `torch.profiler` blocks here.
 
@@ -321,13 +358,17 @@ Six failure modes that cost the most time. Each maps to a pattern from §2.
 
 Every kernel gap discovered should land as an issue or PR upstream.
 
-| Gap type | Upstream |
+| Gap type | Upstream / owner |
 |---|---|
 | AITER missing op / wrong shape / perf regression | https://github.com/ROCm/aiter |
 | ATOM-side wrapper bug or missing reference pattern | https://github.com/ROCm/ATOM |
 | flash-attn ROCm bug | https://github.com/ROCm/flash-attention |
 | Triton kernel HIP incompat | upstream of the kernel (fla-org, mamba, etc.) |
 | Mamba / linear-attn ROCm | https://github.com/state-spaces/mamba, https://github.com/fla-org/flash-linear-attention |
+| Dense conv / video VAE perf gap | this skill's conv TODO until a maintained CK/Triton/HIP path exists |
+| Sparse conv perf gap | `spconv_rocm` issue / PR, plus this skill's sparse-conv TODO |
+| gsplat / nvdiffrast perf gap | `rocm-lib-compat` backend sanity check, then `amd_gsplat` / ROCm nvdiffrast fork or owning repo issue |
+| Layout/copy regression | model repo first; remove format churn before filing kernel issues |
 | Serving-stack ROCm gap | https://github.com/vllm-project/vllm (label `rocm`), https://github.com/sgl-project/sglang |
 
 ---
@@ -348,15 +389,15 @@ Every kernel gap discovered should land as an issue or PR upstream.
 Three-skill pipeline:
 
 ```
-[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-llm-kernels-for-3d ]
- (make it run)           (measure + prioritize)        (replace kernels, ATOM-style)
+[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
+ (make it run)           (measure + classify)           (optimize selected family)
 ```
 
 <!--
 Maintainer note (not part of the skill body) — why this skill exists alongside `inference-skill`.
 Kept here so future agents/maintainers don't re-derive the boundary or accidentally merge the two.
 
-| dimension              | inference-skill (LLM)                                                                       | rocm-llm-kernels-for-3d (3D/VLA/WM)                              |
+| dimension              | inference-skill (LLM)                                                                       | rocm-kernels-for-3d (3D/VLA/WM)                                  |
 |------------------------|---------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 | target model lives in  | already running inside vLLM / SGLang                                                        | raw PyTorch repo, never framework-adopted                        |
 | how AITER engages      | framework flag: `VLLM_ROCM_USE_AITER=1` already swaps ~80% of kernels (see [`aiter-api.md`](aiter-api.md) §13/14) | manual wrap into model files; no framework dispatch exists       |
