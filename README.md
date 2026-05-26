@@ -11,6 +11,17 @@
  (让 repo 跑起来)         (量化分析 + kernel 分类)      (按 kernel family 优化)
 ```
 
+受 [AI-Infra-Auto-Driven-SKILLS](https://github.com/BBuf/AI-Infra-Auto-Driven-SKILLS)
+启发，`rocm3d` 保持三 skill 架构不变，但吸收它的**证据闭环**：
+
+```
+repo/env manifest → bounded workload → phase-split profile → action table → upstream/skill-gap log
+```
+
+这层不是新的 skill，而是所有 ROCm 3D 迁移与优化任务的交付标准：
+每次结论都要能追到具体环境、输入 workload、raw artifacts、kernel 分类、
+handoff owner，以及是否存在 same-config NVIDIA baseline。
+
 | Skill | 解决什么问题 | 何时调用 |
 |---|---|---|
 | [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | 给 CUDA-only repo 出 ROCm 安装脚本，并确认 gsplat / spconv / nvdiffrast / flash-attn 等是否走正确 ROCm backend | repo 还跑不起来，或 profile top 落在库级 kernel 时 |
@@ -42,6 +53,15 @@
 > - ❓ **Unlicensed**: 未在 repo 中发现明确许可证，迁移验证仅供内部参考
 >
 > **本项目仅验证 ROCm 技术兼容性，不对原始 repo 的许可证做任何修改或再授权。使用前请自行确认许可证合规性。**
+
+### 视觉检测 / 分割
+
+| Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
+|------|------|------|-------------|------|
+| [ZJLi2013/GroundingDINO](https://github.com/ZJLi2013/GroundingDINO/tree/rocm_supported) | Open-vocabulary detection | 🟢 Apache-2.0 | HIP `MsDeformAttn` forward, torch.library custom op | ✅ 已验证（ROCm inference；GroundingDINO→SAM e2e PASS） |
+| [facebookresearch/sam2](https://github.com/facebookresearch/sam2) | Image/video segmentation | 🟢 Apache-2.0 | — (SAM2 image predictor) | ✅ 已验证（`sam2.1_hiera_base_plus.pt`, official `truck.jpg` image example） |
+| [IDEA-Research/Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2) | Grounded detection + SAM2 segmentation/tracking | 🟢 Apache-2.0 + upstream component licenses | SAM2, HF GroundingDINO | ✅ 已验证（HF GroundingDINO tiny + SAM2.1 base-plus，4 annotations；推荐后续 base） |
+| [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ 已验证（legacy image e2e 输出 `truck` mask；作为兼容后备） |
 
 ### 3D 生成与重建
 
@@ -162,6 +182,7 @@ rocm3d/
 - **三个 skill 单一职责**，互不污染；每个都可以独立加载，避免大 skill 被强制塞到所有 context 里。
 - **外部工具优先**：能用 [TraceLens](https://github.com/AMD-AGI/TraceLens-internal) / [AITER](https://github.com/ROCm/aiter) / [ATOM](https://github.com/ROCm/ATOM) / [inference-skill](https://github.com/AMD-AIM/inference-skill) 的就不自己写。
 - **与 AMD 官方工具链呼应**：`rocm-perf-analysis` 是 AMD-AIM 的 `inferencex-optimize` 在 3D 邻域的轻量版本，复用同样的 TraceLens + GPU peak 表 + phase-split 方法论。
+- **证据先于结论**：借鉴 `AI-Infra-Auto-Driven-SKILLS` 的 benchmark / profiler 规范，所有性能判断必须带 workload、版本、raw artifact、phase split、handoff owner；没有 same-config NV baseline 时不能把 ROCm runtime share 直接解释成 backend gap。
 
 ## 贡献
 
@@ -174,3 +195,6 @@ rocm3d/
 | 可执行代码骨架（model_ops / loader / compile / validate） | [`.cursor/skills/rocm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-kernels-for-3d/cookbook.md) |
 | AITER kernel 全景速查（dtype 矩阵 + 集成清单） | [`.cursor/skills/rocm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-kernels-for-3d/aiter-api.md) |
 | 已支持的 repo 列表（上方表格） | 本 README.md |
+## Reference
+
+[AI-Infra-Auto-Driven-SKILLS](https://github.com/BBuf/AI-Infra-Auto-Driven-SKILLS)

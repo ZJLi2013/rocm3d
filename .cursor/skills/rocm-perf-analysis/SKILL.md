@@ -5,7 +5,8 @@ author: ZJLi2013
 description: |
   Performance analysis skill for 3D / Video / World Model / VLA inference on
   AMD ROCm. Provides a phase-split roofline workflow built on AMD's TraceLens
-  tool, GPU peak-TFLOPS reference data, and kernel bottleneck classification.
+  tool, GPU peak-TFLOPS reference data, optional same-config NVIDIA baselines,
+  and kernel bottleneck classification.
 
   Use when:
     - profiling a VLA / WM / DiT / video diffusion model on MI300X / MI350X
@@ -14,6 +15,7 @@ description: |
       bottleneck attribution
     - deciding which kernels are worth optimizing (priority = pct × gap)
     - generating a comparable AMD-vs-NV perf report for a 3D-adjacent model
+    - checking whether a ROCm hotspot is a real backend gap or just model cost
 
   Companion to:
     - `rocm-lib-compat` (compatibility — get the repo running)
@@ -44,6 +46,11 @@ Three things this skill does, and nothing else:
 3. **Rank all kernels** by `priority_score = pct_of_runtime × (1 − roofline_efficiency)`,
    classify each row by kernel family, and produce a short list of optimization
    targets to hand off to `rocm-kernels-for-3d` or `rocm-lib-compat`.
+4. **Add a same-config NVIDIA baseline when available** (H100/H200/B200 vs
+   MI300X/MI325X/MI350X). This is recommended, not a hard blocker: if the repo
+   has no NV reference and no NV node is available, mark the baseline as missing
+   and avoid claiming that a ROCm hotspot is "abnormally slow" solely from its
+   ROCm runtime share.
 
 Everything else — kernel replacement, AITER wrapping, conv/sparse/comm
 optimization — is the job of `rocm-kernels-for-3d`. This skill stops at
@@ -64,6 +71,9 @@ VLA / WM models, because:
 - Without a peak TFLOPS reference, "this op is slow" is opinion. Roofline (`Pct
   Roofline = achieved TFLOPS/s ÷ peak TFLOPS/s for the op's precision`) makes
   it a number.
+- Without a same-config NVIDIA baseline, "this ROCm hotspot is a backend gap"
+  is also opinion. A top ROCm op may be model-intrinsic cost. Use NV baselines
+  when the repo provides them or when an H100/H200/B200 run is practical.
 
 AMD already shipped a battle-tested LLM-side toolchain
 ([inferencex-optimize](https://github.com/AMD-AIM/inference-skill)) that solves
@@ -439,7 +449,35 @@ owner; otherwise quote it separately as communication overhead.
 
 ---
 
-## 7. Standard Perf Report Template
+## 7. Evidence Contract
+
+This skill adopts the evidence discipline from
+[AI-Infra-Auto-Driven-SKILLS](https://github.com/BBuf/AI-Infra-Auto-Driven-SKILLS),
+but keeps the implementation 3D/ROCm-specific. A perf claim is complete only
+when the report can answer these questions without re-running the experiment:
+
+| Evidence | Required contents |
+|---|---|
+| Run identity | repo commit, ROCm/PyTorch/AITER versions, Docker image, GPU model/count, precision |
+| Workload | exact input assets/prompts/videos, shapes, batch, steps, warmup, scheduler/cache state, random seed when relevant |
+| Bounded candidate | the one install/backend/kernel change being evaluated; failed candidates stay in the notes |
+| Stage split | compute-heavy vs memory/iter-heavy phase names, or an explicit statement that aggregate-only profiling was used |
+| Raw artifacts | original trace(s), TraceLens CSVs, `gpu_arch.json`, logs, and any same-config NVIDIA reference |
+| Action table | top kernels by priority, `kernel_type`, handoff owner, and whether the next step is compat, model cleanup, kernel work, or upstream issue |
+
+Rules:
+- Keep successful and failed candidates visible. A failed AITER/ROCm backend
+  attempt is evidence, not noise.
+- Report external raster / point / sparse libraries by measured time unless a
+  valid roofline reference exists for that kernel family.
+- Do not call a ROCm hotspot a backend gap from runtime share alone. Use a
+  same-config NVIDIA baseline when practical; otherwise mark it unavailable.
+- Preserve the raw artifacts path in the report so the next agent can replay or
+  re-rank without guessing.
+
+---
+
+## 8. Standard Perf Report Template
 
 When a profile run completes, produce this report (drop into the model's repo
 or `overnight_tasks/<repo>/perf.md`):
@@ -448,6 +486,8 @@ or `overnight_tasks/<repo>/perf.md`):
 # <Model> on <GPU> — Perf Report
 
 ## Environment
+- Run ID: <repo>-<date>-<candidate>
+- Repo commit: <sha>
 - ROCm: <version>      PyTorch: <version>      AITER: <version>
 - Docker base: <image>
 - GPU: <MI300X / MI355X / H100 / H200 / B200>, count <N>, arch <gfx942 / gfx950 / sm_90 / sm_100>
@@ -455,9 +495,33 @@ or `overnight_tasks/<repo>/perf.md`):
 - HBM bandwidth: <X> GB/s
 
 ## Workload
+- Input artifacts: <image/video/assets/prompts path or dataset slice>
 - Input shape: <…>, batch=<…>, seq_len / n_steps=<…>
+- Warmup / active steps: <…>
 - Precision: <bf16 / fp8 / fp4>
 - Phase split: prefill = <annotation>, decode = <annotation>
+
+## Candidate
+- Baseline command: `<...>`
+- Candidate change: <install/backend/kernel/model-side cleanup>
+- Candidate command: `<...>`
+- Failed candidates kept in notes: <yes/no, path>
+
+## NVIDIA Baseline (recommended, not blocking)
+- Status: <same-config H100/H200/B200 measured / official same-config reference / unavailable>
+- If unavailable: <reason: no NV node, repo has no published baseline, workload cannot run on CUDA without porting, etc.>
+- Same-config guardrails: same model weights, shape, batch, precision, steps, scheduler, warmup/cache state, and timing boundary.
+
+| Metric | ROCm <GPU> | NVIDIA <GPU> | Notes |
+|-------:|-----------:|-------------:|------|
+| End-to-end wall time | … | … | … |
+| Prefill / compute-heavy phase | … | … | … |
+| Decode / iter-heavy phase | … | … | … |
+| Top target phase/op | … | … | e.g. MIOpen/CK Conv3D vs cuDNN Conv3D |
+
+Use this section to decide whether a ROCm hotspot is a real cross-vendor gap.
+If the section is unavailable, still report the ROCm profile, but do not use
+ROCm runtime share alone as proof that a kernel family needs replacement.
 
 ## GPU Utilization (per phase)
 
@@ -503,6 +567,8 @@ or `overnight_tasks/<repo>/perf.md`):
 
 ## Raw artifacts
 
+- Run log:                  `results/run.log`
+- Candidate notes:          `results/candidates.md`
 - TraceLens CSVs (prefill): `results/tracelens_prefilldecode_csvs/`
 - TraceLens CSVs (decode):  `results/tracelens_decode_csvs/`
 - Phase-split traces:       `results/phase_split/`
@@ -511,7 +577,7 @@ or `overnight_tasks/<repo>/perf.md`):
 
 ---
 
-## 8. Cross-references
+## 9. Cross-references
 
 | When you need to… | Use this | Not this |
 |---|---|---|
@@ -530,7 +596,7 @@ or `overnight_tasks/<repo>/perf.md`):
 
 ---
 
-## 9. Out of Scope
+## 10. Out of Scope
 
 - **LLM serving optimization** — use AMD's full
   [inferencex-optimize](https://github.com/AMD-AIM/inference-skill) pipeline; it
@@ -546,7 +612,7 @@ or `overnight_tasks/<repo>/perf.md`):
 
 ---
 
-## 10. Roadmap
+## 11. Roadmap
 
 | Version | Scope |
 |---|---|
@@ -559,7 +625,7 @@ or `overnight_tasks/<repo>/perf.md`):
 
 ---
 
-## 11. Open Questions (resolve as we iterate)
+## 12. Open Questions (resolve as we iterate)
 
 - TraceLens phase splitter: how brittle is it on non-vLLM annotations? Likely
   needs a small patch or a parallel splitter for VLA / DiT annotations.

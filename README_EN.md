@@ -41,6 +41,15 @@ The following repos have been verified on AMD MI300X with ROCm.
 >
 > **This project only verifies ROCm technical compatibility. It does not modify or relicense the original repos. Verify license compliance before use.**
 
+### Visual Detection / Segmentation
+
+| Repo | Domain | License | Key ROCm Libs | Status |
+|------|--------|---------|---------------|--------|
+| [ZJLi2013/GroundingDINO](https://github.com/ZJLi2013/GroundingDINO/tree/rocm_supported) | Open-vocabulary detection | 🟢 Apache-2.0 | HIP `MsDeformAttn` forward, torch.library custom op | ✅ Verified (ROCm inference; GroundingDINO→SAM e2e PASS) |
+| [facebookresearch/sam2](https://github.com/facebookresearch/sam2) | Image/video segmentation | 🟢 Apache-2.0 | — (SAM2 image predictor) | ✅ Verified (`sam2.1_hiera_base_plus.pt`, official `truck.jpg` image example) |
+| [IDEA-Research/Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2) | Grounded detection + SAM2 segmentation/tracking | 🟢 Apache-2.0 + upstream component licenses | SAM2, HF GroundingDINO | ✅ Verified (HF GroundingDINO tiny + SAM2.1 base-plus, 4 annotations; recommended base) |
+| [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ Verified (legacy image e2e outputs `truck` mask; compatibility fallback) |
+
 ### 3D Generation & Reconstruction
 
 | Repo | Domain | License | Key ROCm Libs | Status |
