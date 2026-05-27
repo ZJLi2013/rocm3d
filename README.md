@@ -4,15 +4,18 @@
 
 一组 Cursor agent skill，专门面向 3D / 视频 / 世界模型 / VLA / 具身智能开源仓库在 AMD ROCm 平台上的**移植、性能分析、与 kernel 优化**。
 
-## 核心价值（三个 skill, 三个职责）
+## 核心价值（四个 skill, 四个职责）
 
 ```
 [ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
- (让 repo 跑起来)         (量化分析 + kernel 分类)      (按 kernel family 优化)
+ (让 repo 跑起来)         (量化分析 + kernel 分类)      (接入已有高性能 kernel)
+
+                                   ↘ [ rocm-new-kernels ]
+                                      (缺失 op 的新 kernel 设计)
 ```
 
 受 [AI-Infra-Auto-Driven-SKILLS](https://github.com/BBuf/AI-Infra-Auto-Driven-SKILLS)
-启发，`rocm3d` 保持三 skill 架构不变，但吸收它的**证据闭环**：
+启发，`rocm3d` 保持单一职责的多 skill 架构，并吸收它的**证据闭环**：
 
 ```
 repo/env manifest → bounded workload → phase-split profile → action table → upstream/skill-gap log
@@ -26,7 +29,8 @@ handoff owner，以及是否存在 same-config NVIDIA baseline。
 |---|---|---|
 | [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | 给 CUDA-only repo 出 ROCm 安装脚本，并确认 gsplat / spconv / nvdiffrast / flash-attn 等是否走正确 ROCm backend | repo 还跑不起来，或 profile top 落在库级 kernel 时 |
 | [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS，输出全 kernel ranking + 强制 kernel_type 分类 + handoff | repo 跑通后，决定优化方向时 |
-| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | 按实际 profile 优化有明确 kernel owner 的 family：attention / GEMM / conv / sparse conv / collective comm / fused elementwise 等；`copy/layout`、tensor indexing、`gsplat` / `nvdiffrast` 等走 handoff routing | 拿到 perf-analysis 的分类优化清单后 |
+| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | 把已有 AITER/ATOM/ROCm-library 高性能路径接入 3D/VLA/WM 模型：attention / GEMM / norm / quant / MoE / compile / loader / validation | top kernel 已有明确 kernel owner 时 |
+| [`rocm-new-kernels`](.cursor/skills/rocm-new-kernels/SKILL.md) | 当 AITER/ATOM/ROCm library 没有现成 op 时，按 K/R/W + harness + ledger 设计 forward-only HIP/Triton/CK 新 kernel；包含 MI300/MI350 硬件 knowhow 与 GEAK-style iteration | 类似 GroundingDINO MsDeformAttn 这类缺失 kernel |
 
 ## 使用方式
 
@@ -38,6 +42,8 @@ handoff owner，以及是否存在 same-config NVIDIA baseline。
 "使用 rocm-perf-analysis skill，给 <model> 跑 phase-split roofline 报告"
 
 "使用 rocm-kernels-for-3d skill，根据 perf-analysis 的 kernel_type 优化 <model> 的 top kernels"
+
+"使用 rocm-new-kernels skill，为 <model> 的 <missing-op> 设计 ROCm forward kernel"
 ```
 
 
@@ -62,6 +68,7 @@ handoff owner，以及是否存在 same-config NVIDIA baseline。
 | [facebookresearch/sam2](https://github.com/facebookresearch/sam2) | Image/video segmentation | 🟢 Apache-2.0 | — (SAM2 image predictor) | ✅ 已验证（`sam2.1_hiera_base_plus.pt`, official `truck.jpg` image example） |
 | [IDEA-Research/Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2) | Grounded detection + SAM2 segmentation/tracking | 🟢 Apache-2.0 + upstream component licenses | SAM2, HF GroundingDINO | ✅ 已验证（HF GroundingDINO tiny + SAM2.1 base-plus，4 annotations；推荐后续 base） |
 | [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ 已验证（legacy image e2e 输出 `truck` mask；作为兼容后备） |
+| [DCDmllm/InstructSAM](https://github.com/DCDmllm/InstructSAM) | Instruction-driven instance segmentation (Qwen3-VL + SAM3) | ❓ 无 LICENSE 文件；`facebook/sam3` gated weights | flash-attn (FA2 Triton), SAM3 | ✅ 已验证（InstructSAM-2B + `fused_attention`，`truck.jpg` 输出 10 masks，peak 6016MB） |
 
 ### 3D 生成与重建
 
@@ -170,16 +177,18 @@ rocm3d/
     ├── rocm-perf-analysis/                # Skill 2：性能分析
     │   ├── SKILL.md                       #   TraceLens phase-split roofline 工作流
     │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS 表
-    └── rocm-kernels-for-3d/               # Skill 3：按 kernel family 优化
-        ├── SKILL.md                       #   attention/GEMM/conv/sparse/comm/elementwise 等优化 routing + recipe
-        ├── cookbook.md                    #   可执行代码骨架：model_ops wrappers / loader / compile / validate / version switch
-        └── aiter-api.md                   #   AITER kernel 全景速查（dtype 矩阵 + SGLang/vLLM 集成清单，自包含）
+    ├── rocm-kernels-for-3d/               # Skill 3：接入已有高性能 kernel
+    │   ├── SKILL.md                       #   AITER/ATOM wrapper routing + recipe
+    │   ├── cookbook.md                    #   可执行代码骨架：model_ops wrappers / loader / compile / validate / version switch
+    │   └── aiter-api.md                   #   AITER kernel 全景速查（dtype 矩阵 + SGLang/vLLM 集成清单，自包含）
+    └── rocm-new-kernels/                  # Skill 4：缺失 op 的新 kernel 设计
+        └── SKILL.md                       #   K/R/W + harness + MI300/MI350 knowhow + GEAK-style iteration
 ```
 
 设计原则：
 
 - **以 SKILL.md 文档为主**，不维护独立 .py 脚本。所有可执行片段以 `python -c "..."` / shell block 形式直接嵌入 markdown，agent 可以直接 copy-paste。
-- **三个 skill 单一职责**，互不污染；每个都可以独立加载，避免大 skill 被强制塞到所有 context 里。
+- **每个 skill 单一职责**，互不污染；每个都可以独立加载，避免大 skill 被强制塞到所有 context 里。
 - **外部工具优先**：能用 [TraceLens](https://github.com/AMD-AGI/TraceLens-internal) / [AITER](https://github.com/ROCm/aiter) / [ATOM](https://github.com/ROCm/ATOM) / [inference-skill](https://github.com/AMD-AIM/inference-skill) 的就不自己写。
 - **与 AMD 官方工具链呼应**：`rocm-perf-analysis` 是 AMD-AIM 的 `inferencex-optimize` 在 3D 邻域的轻量版本，复用同样的 TraceLens + GPU peak 表 + phase-split 方法论。
 - **证据先于结论**：借鉴 `AI-Infra-Auto-Driven-SKILLS` 的 benchmark / profiler 规范，所有性能判断必须带 workload、版本、raw artifact、phase split、handoff owner；没有 same-config NV baseline 时不能把 ROCm runtime share 直接解释成 backend gap。
@@ -194,6 +203,7 @@ rocm3d/
 | Kernel family 优化 routing / recipe | [`.cursor/skills/rocm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) |
 | 可执行代码骨架（model_ops / loader / compile / validate） | [`.cursor/skills/rocm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-kernels-for-3d/cookbook.md) |
 | AITER kernel 全景速查（dtype 矩阵 + 集成清单） | [`.cursor/skills/rocm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-kernels-for-3d/aiter-api.md) |
+| 缺失 op 的新 HIP/Triton/CK kernel 设计 | [`.cursor/skills/rocm-new-kernels/SKILL.md`](.cursor/skills/rocm-new-kernels/SKILL.md) |
 | 已支持的 repo 列表（上方表格） | 本 README.md |
 ## Reference
 

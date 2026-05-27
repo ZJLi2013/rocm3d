@@ -36,7 +36,7 @@ allowed-tools: [Read, Write, Glob, Grep, Shell]
 
 ## 0. TL;DR
 
-Three things this skill does, and nothing else:
+Four things this skill does, and nothing else:
 
 1. **Run TraceLens** on a PyTorch profiler trace to get structured CSV output
    (`GEMM.csv`, `SDPA_fwd.csv`, `kernel_summary.csv`, `unified_perf_summary.csv`).
@@ -91,7 +91,6 @@ prefill/decode.
 | **TraceLens** | [AMD-AGI/TraceLens-internal](https://github.com/AMD-AGI/TraceLens-internal) | Parses PyTorch profiler trace → structured CSV (GEMM, SDPA, kernels, roofline) |
 | **TraceLens phase splitter** | `TraceLens-internal/examples/custom_workflows/split_vllm_trace_annotation.py` | Splits a single trace into `prefilldecode_*.json.gz` and `decode_*.json.gz`. Designed for vLLM but works for any annotated trace. |
 | **GPU peak TFLOPS table** | [`gpu-specs.md`](gpu-specs.md) | Authoritative per-GPU dense TFLOPS for matrix_fp16 / bf16 / fp8 / fp4 / vector_*; required input for roofline |
-| **GEAK** (future) | AMD-internal | LLM-driven Triton kernel generator + verifier. Out of scope for v0.1; mentioned so we don't hand-write kernels when GEAK can do it. |
 | **rocm-smi / rocminfo** | ROCm install | GPU model + arch detection; powers `gpu-specs.md` auto-pick |
 
 **Rule**: this skill calls TraceLens. It does **not** wrap, re-implement, or
@@ -422,30 +421,17 @@ to pick the right column for the op's precision.
 
 ## 6. Bottleneck Classification (lightweight)
 
-When ranking optimization targets (§3 step 6), label each op by **kernel type**
-so the right tool/skill picks it up later:
+The executable classifier is in §3 step 6; keep that as the single source of
+truth. When editing it, preserve these routing rules:
 
-| Kernel-type label | Identifier substrings | Hand off to |
-|---|---|---|
-| `attention` | `flash_attn`, `paged_attn`, `sdpa`, `attn_fwd`, `ck_fmha`, `MLA` | `rocm-kernels-for-3d` attention / AITER pattern |
-| `gemm` | `hipblas`, `rocblas`, `Cijk_*`, `aten::mm`, `aten::addmm`, `aten::matmul`, `aten::linear` | `rocm-kernels-for-3d` GEMM + Column/Row/Replicated wrappers |
-| `gemm_fp8` / `gemm_fp4` | `mxfp4_*`, `fp8_*`, `dequant`, kernel name contains precision | AITER quant path + ATOM loader shuffle |
-| `moe` | `fused_moe`, `moe_gemm`, `topk`, `permute` | AITER FusedMoE wrapper |
-| `conv` | `conv2d`, `conv3d`, `convolution`, `miopen_convolution`, `grouped_conv`, `depthwise`, `Im3d2Col` | `rocm-kernels-for-3d` dense/video conv + layout checklist |
-| `sparse_conv` | `spconv`, `indice`, `sparseconv` | `rocm-lib-compat` backend check, then `rocm-kernels-for-3d` sparse-conv TODO |
-| `collective_comm` | `nccl`, `rccl`, `all_reduce`, `all_gather`, `reduce_scatter` | Distributed comm path. AITER has Iris `all_gather`, `reduce_scatter`, and fused reduce-scatter+norm+quant+all-gather kernels; use only when topology/shape match |
-| `external_raster` | `gsplat`, `raster`, `nvdiffrast`, `interpolate`, `antialias`, `texture` | `rocm-lib-compat` backend check; owning library/upstream. Not a generic `rocm-kernels-for-3d` target |
-| `copy_layout` | `copy_`, `contiguous`, `transpose`, `permute`, layout conversion kernels | Model-side layout cleanup; no generic AITER kernel owner |
-| `indexing_scatter_gather` | `scatter`, `gather`, `index_select`, `index_add`, segment ops | Model/library indexing path. Do not confuse with collective `all_gather` / `reduce_scatter` |
-| `norm` | `rms_norm`, `layer_norm`, `add_rmsnorm`, `group_norm` | `rocm-kernels-for-3d` fused norm path; memory-bound — target `vector_*` peak |
-| `rope` / `activation` / `elementwise` | `rope`, `silu`, `gelu`, `swiglu`, activation+quant; generic `add`/`mul` only if fused pattern exists | AITER fused activation/quant or graph fusion; not arbitrary elementwise replacement |
-| `linear_attn` / `mamba` | `chunk_state`, `ssd_*`, `mamba_*`, `gla_*` | fla-org / mamba upstream (largest current ROCm gap) |
-| `other` | everything else | manual triage |
-
-When generating the priority-ranked list (§3 step 6), keep
-`collective_comm` separate from compute kernels. It is actionable only when the
-workload is distributed and AITER/Iris or framework/RCCL routing is a plausible
-owner; otherwise quote it separately as communication overhead.
+- `attention`, `gemm`, `conv`, `norm`, fused activation, and high-share
+  `linear_attn_mamba` rows can become `rocm-kernels-for-3d` work.
+- `sparse_conv` first needs `rocm-lib-compat` backend verification, then a
+  sparse-conv perf recipe if the backend is correct.
+- `external_raster`, `copy_layout`, and `indexing_scatter_gather` are reported
+  but not generic kernel-replacement targets.
+- Keep `collective_comm` separate from compute kernels; it is actionable only
+  for distributed workloads with a plausible AITER/Iris or framework/RCCL owner.
 
 ---
 
@@ -602,8 +588,8 @@ ROCm runtime share alone as proof that a kernel family needs replacement.
   [inferencex-optimize](https://github.com/AMD-AIM/inference-skill) pipeline; it
   already automates the 9-phase end-to-end loop including kernel optimization
   via GEAK. This skill stops at "measure & prioritize" for 3D workloads.
-- **Writing new Triton kernels** — for that, use GEAK (when available) rather
-  than hand-writing. Triton kernel codegen is a separate skill (future).
+- **Writing new Triton/HIP kernels** — hand off to `rocm-kernels-for-3d` only
+  after this skill has ranked and classified the target.
 - **vLLM / SGLang server lifecycle** — `inferencex-optimize` and
   `vllm-optimize` handle this for LLM; we don't recreate it.
 - **Training-side profiling** — this skill is inference / eval / rollout
@@ -612,29 +598,8 @@ ROCm runtime share alone as proof that a kernel family needs replacement.
 
 ---
 
-## 11. Roadmap
+## 11. Maintenance Notes
 
-| Version | Scope |
-|---|---|
-| **0.1 draft** (current) | TraceLens integration, phase-split recipe, 3D-model phase definitions, GPU peak table, priority scoring |
-| 0.2 | First end-to-end perf report on a real workload (SmolVLA on MI300X or SANA-WM on MI300X); validate phase splitter on non-vLLM annotations |
-| 0.3 | Add MI350X / MI355X coverage (FP4 GEMM rooflines); compare against H100 / B200 numbers |
-| 0.4 | Lightweight kernel classifier script (mirroring `inferencex-optimize/scripts/classify_kernel.py` but trimmed for 3D ops); cross-rank ranking |
-| 0.5 | GEAK integration recipe — when a high-priority gap kernel has no AITER analog, drive GEAK to generate a Triton candidate and verify with `cos_max` |
-| 1.0 | Covers ≥3 model families end-to-end (VLA + WM + DiT) with reproducible perf reports + at least one external user |
-
----
-
-## 12. Open Questions (resolve as we iterate)
-
-- TraceLens phase splitter: how brittle is it on non-vLLM annotations? Likely
-  needs a small patch or a parallel splitter for VLA / DiT annotations.
-- GEMM.csv shape coverage: does TraceLens capture all aten::mm / aten::addmm
-  variants used by VLA backbones, or only those that go through `torch.compile`?
-- FP4 roofline on MI350X / MI355X: peak TFLOPS table assumes dense FP4; need
-  to verify against actual MXFP4 kernels in AITER.
-- 3D-specific ops (`spconv_rocm`, `gsplat`, `nvdiffrast`): they show up in
-  trace but have no peak TFLOPS reference. Report them by **time only**,
-  not by roofline %, until we have a per-kernel benchmark.
-- For single-shot 3D reconstruction models (VGGT / DUSt3R), is per-phase
-  roofline meaningful, or should we fall back to aggregate roofline?
+Keep roadmap and unresolved research questions out of this skill body. If a
+profile exposes a new recurring gap, either add a concise routing rule above or
+record it in the relevant `overnight_tasks/<repo>/experiments.md`.
