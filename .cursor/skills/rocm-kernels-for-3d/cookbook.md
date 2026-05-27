@@ -746,6 +746,100 @@ mp.set_start_method("spawn", force=True)
 decoration line. Dynamo's source-cache check fires. Instrument at call
 sites instead.
 
+### 4.5 Targeted dtype wrapper that survives `torch.compile`
+
+Use this when a GEMM/FFN microbench shows BF16/FP16 upside, but global autocast
+hurts e2e. The wrapper must be a real `nn.Module`; low-precision weights/scales
+must be registered parameters or buffers on the target device. Do **not**
+monkey-patch bound methods with raw tensors captured in a closure.
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class LowPrecisionFFN(nn.Module):
+    """Inference-only FFN wrapper with explicit dtype boundaries.
+
+    Surrounding residual / LayerNorm can remain FP32 while the two linear ops
+    run in bf16/fp16. Registering tensors avoids Dynamo treating them as CPU
+    constants during fake-tensor tracing.
+    """
+
+    def __init__(self, linear1: nn.Linear, activation: nn.Module,
+                 dropout: nn.Module, linear2: nn.Linear, dtype=torch.bfloat16):
+        super().__init__()
+        self.activation = activation
+        self.dropout = dropout
+        self.dtype = dtype
+
+        self.register_buffer("w1", linear1.weight.detach().to(dtype).contiguous())
+        if linear1.bias is not None:
+            self.register_buffer("b1", linear1.bias.detach().to(dtype).contiguous())
+        else:
+            self.b1 = None
+
+        self.register_buffer("w2", linear2.weight.detach().to(dtype).contiguous())
+        if linear2.bias is not None:
+            self.register_buffer("b2", linear2.bias.detach().to(dtype).contiguous())
+        else:
+            self.b2 = None
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = x.to(self.dtype)
+        y = F.linear(y, self.w1, self.b1)
+        y = self.activation(y)
+        y = self.dropout(y)
+        y = F.linear(y, self.w2, self.b2)
+        return y.to(x.dtype)
+
+
+def install_encoder_ffn_dtype(model: nn.Module, dtype=torch.bfloat16) -> int:
+    """Replace FFN internals with module-owned low-precision weights.
+
+    The parent layer's forward should call `layer.ffn_lowp(tgt)` and then do
+    residual/dropout/norm as before. If the original code only has
+    `forward_ffn()`, prefer a small subclass or source edit over assigning a
+    closure to `layer.forward_ffn`.
+    """
+
+    patched = 0
+    for layer in model.transformer.encoder.layers:
+        layer.ffn_lowp = LowPrecisionFFN(
+            layer.linear1,
+            layer.activation,
+            layer.dropout3,
+            layer.linear2,
+            dtype=dtype,
+        ).to(next(layer.parameters()).device)
+        patched += 1
+    return patched
+```
+
+Safe source edit shape:
+
+```python
+def forward_ffn(self, tgt):
+    if hasattr(self, "ffn_lowp"):
+        tgt2 = self.ffn_lowp(tgt)
+    else:
+        tgt2 = self.linear2(self.dropout3(self.activation(self.linear1(tgt))))
+    tgt = tgt + self.dropout4(tgt2)
+    return self.norm3(tgt)
+```
+
+Graph-break triage for this path:
+
+```bash
+# Diagnostic only. If this changes the error into dynamic-shape linspace/slice
+# failures, fix shape construction or move it outside the compiled block.
+export TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1
+```
+
+Do not promote the wrapper unless it beats the FP32 `torch.compile` baseline,
+not just eager FP32 or a standalone `torch.addmm` microbench.
+
 ---
 
 ## Part 5 — Validation toolkit

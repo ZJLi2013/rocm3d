@@ -1,6 +1,6 @@
 ---
 name: rocm-kernels-for-3d
-version: 0.4.0
+version: 0.5.0
 description: |
   Single-node inference kernel replacement for 3D generation / reconstruction /
   Video / World Model / VLA / DiT models on AMD GPUs. Optimizes the kernel
@@ -47,7 +47,7 @@ here — there's a sibling skill or upstream owner for it.
 | Model family | 3D generation (TRELLIS, Hunyuan3D, PartCrafter, SegviGen, TokenGS) · 3D reconstruction (dust3r, fast3r, vggt, FoundationStereo, DA3, video_to_world) · World Model (Matrix-Game, Lyra-2, SANA-WM, Wan2.1) · VLA (SmolVLA, π0-style action heads) · DiT video (Wan2.1, HunyuanVideo, CogVideoX, Mochi) · Point cloud backbones (PointTransformerV3, GraspNet) | These are the model families with no native ROCm framework (vLLM / SGLang don't cover them) and the ones that need direct kernel-family optimization after profiling |
 | Workload | **Inference only** (forward + autoregressive decode + iterative denoise) | Training kernels (backward, optimizer) have separate concerns (gradient accumulation, FSDP/ZeRO, optimizer state quant) outside this skill |
 | System scale | **Single GPU primary; up to single node** (TP via `ColumnParallel/RowParallel`, SP via xDIT-style, EP via FusedMoE — all single-node) | Cross-node SP / cross-node TP / pipeline-parallel are inference-stack concerns (vLLM, SGLang); single-node max scales to MI300X × 8 |
-| Data types | **BF16** (default) · **FP8** (per-tensor / per-token / per-1×128 block scale) · **INT8** (per-tensor / per-token) · **FP4 / MXFP4** (per-1×32 block scale, gfx950+) · **INT4** (where ATOM has an example) | AITER provides kernels for all of these; ATOM provides reference quant loading + routing (`atom/model_ops/linear.py` quant path, `atom/models/deepseek_v2.py` FP8 MoE example) |
+| Data types | **BF16** (default) · **FP8** (per-tensor / per-token / per-1×128 block scale) · **INT8** (per-tensor / per-token) · **FP4 / MXFP4** (per-1×32 block scale, gfx950+) · **INT4** (where ATOM has an example) | AITER/ATOM have reference paths for these dtypes where applicable; verify exact op + dtype coverage per workload (`atom/model_ops/linear.py` quant path, `atom/models/deepseek_v2.py` FP8 MoE example) |
 | Kernel category | **Attention** · **GEMM / quant GEMM** · **Norm / RoPE / activation** · **MoE** · **collective comm** · **conv2d / conv3d / depthwise / grouped conv** · **sparse conv** | Only families with a plausible kernel owner or concrete next step are optimization targets here. `copy_` / layout conversion / tensor indexing are reported by perf-analysis but are model/dataflow cleanup, not generic kernel replacement. |
 
 ### 0.2 Out-of-scope (routed elsewhere — do not patch here)
@@ -77,13 +77,14 @@ Each cell needs **one ≥30-min closed-loop cycle** to flip from 🔵 (planned) 
 | **Hybrid linear-attn (GDN / FLA / DeltaNet)** | 🔵 — ATOM has full ref: `atom/model_ops/fla_ops/` (chunk / chunk_delta_h / fused_recurrent) + `atom/model_ops/attentions/gdn_attn.py`; models `qwen3_next.py`, `qwen3_5.py`, `mimo_v2_flash.py`, `kimi_k25.py`, `minimax_m2.py`, `glm4_moe.py` are wired e2e | 🔵 | 🔵 | — | — |
 | **Mamba SSM (causal_conv1d + selective_scan)** | 🔵 — `causal_conv1d` in ATOM `atom/model_ops/mamba_ops/causal_conv1d.py` + AITER `aiter.ops.causal_conv1d`; selective_scan via upstream `state-spaces/mamba` (verify per cycle) | — | — | — | — |
 | **Dense video/VAE conv** | 🔵 SANA-WM surfaced this as top bottleneck; TODO recipe covers phase split + layout diagnosis, not MIOpen tuning | — | — | — | — |
-| **Sparse conv / voxel conv** | ✅ `spconv_rocm` via `rocm-lib-compat`; perf recipe TODO lives here | — | — | — | — |
+| **Sparse conv / voxel conv** | 🔵 compatibility validated via `spconv_rocm`; perf recipe TODO lives here | — | — | — | — |
 | **Collective comm (all-reduce / all-gather / reduce-scatter)** | 🔵 AITER has `ops/triton/comms/{all_gather,reduce_scatter}` and fused reduce-scatter + RMSNorm + quant + all-gather; use only for distributed TP/EP/SP paths | — | — | — | — |
 | **Fused activation / elementwise** | 🔵 AITER has fused SiLU-mul and activation+FP8/FP4 quant paths; generic add/mul/copy is not covered | n/a | n/a | n/a | n/a |
 
 **Reading the matrix**:
 - ✅ = one experiment doc + perf delta + cos_max ≥ 0.99 + skill-gap log row exists
 - 🔵 = AITER has the kernel + ATOM has a reference + cookbook has a wrapper, but no agent-driven closed-loop run yet
+- 🔵 compatibility validated = backend import/smoke works, but this skill has not completed a perf optimization loop
 - — = combination doesn't exist (e.g. element-wise has no dtype-specific kernel, INT4 doesn't apply to MoE on gfx942)
 
 ### 0.4 Kernel-coverage rationale (why all kernel families stay in scope)
@@ -147,7 +148,7 @@ thin wrapper in `model_ops/` that owns:
 
 **3D-side**: define `Vla*Linear`, `WmAttention`, `DiTBlock` in your repo,
 mirroring ATOM's wrappers. Isolates AITER specifics from model logic and
-makes a CUDA fallback trivial.
+makes a CUDA/HIP fallback trivial.
 
 ### Pattern B — `process_weights_after_loading()` for CK shuffle
 
@@ -249,6 +250,38 @@ and run the smallest diagnostic experiment, not to declare the perf loop done.
 
 ## 4. Standard recipe
 
+### 4.0 KernelPilot-style optimization loop
+
+This skill should use a KernelPilot-like loop structure for serious kernel
+optimization runs, while replacing CUDA/Nsight-specific pieces with the ROCm
+toolchain. KernelPilot is a peer-level reference for loop hygiene: standalone
+workspace, evidence ledgers, prior-art lookup, profiling only when it changes
+the next edit, and review-gated iterations.
+
+Adopt the structure, not the CUDA assumptions:
+
+| KernelPilot idea | ROCm/3D adaptation |
+|---|---|
+| Standalone candidate workspace | Create a small harness outside the model repo when testing a new HIP/Triton/AITER wrapper; only port back after correctness + latency are proven |
+| Prior-art lookup | Check AITER, ATOM, ROCm library forks, PyTorch ROCm issues, and relevant upstream PRs before writing a new kernel |
+| Profiling evidence | Use `rocm-perf-analysis` / TraceLens / rocprof evidence instead of Nsight Compute |
+| Benchmark ledger | Record shapes, dtype, baseline latency, candidate latency, correctness metric, and regression notes per iteration |
+| Review-gated iteration | Do not declare victory from one fast microbench; require correctness, workload-representative latency, and no downstream pipeline regression |
+| Upstream placement decision | Decide whether the fix belongs in the model repo, a ROCm library fork, AITER/ATOM, or an isolated experiment |
+
+For each optimization target, keep a minimal ledger:
+
+```markdown
+| Iter | Candidate | Shape / dtype | Correctness | Latency delta | Evidence | Decision |
+|---|---|---|---|---|---|---|
+| 0 | baseline | M,N,K / bf16 | reference | 1.00x | trace/profile path | keep |
+| 1 | <wrapper/kernel> | same | cos=... / max_diff=... | ...x | bench artifact | accept/reject |
+```
+
+Use this loop when an optimization may take multiple edits or when a kernel
+swap could silently change model behavior. For one-line backend routing fixes,
+the normal standard recipe below is enough.
+
 ### Step 1 — Identify targets
 
 Run [`rocm-perf-analysis`](../rocm-perf-analysis/SKILL.md). It produces the
@@ -315,6 +348,59 @@ that stable shape. Decorator + bucketing snippets →
 - Set `AITER_LOG_LEVEL=WARNING` to suppress kernel log flooding.
 - Clear compile cache when code changes: `rm -rf ~/.cache/<your_app>/`.
 
+### Step 5.1 — Combine `torch.compile` with targeted dtype conversion
+
+Use this path when profiling shows **GEMM/linear is hot**, standalone
+BF16/FP16 GEMM is faster, but global autocast regresses e2e because of
+cast/layout/BMM churn. GroundingDINO GDINO-15/16/17 is the reference failure
+mode: transformer compile helped, but ad hoc low-precision monkey patches
+failed before producing a valid e2e result.
+
+Default order:
+
+1. **Compile first, dtype second.** Establish an FP32 `torch.compile` baseline
+   on the largest stable block (`transformer`, encoder block, DiT block). Record
+   latency, graph breaks, detections/actions, and output drift.
+2. **Localize graph breaks before dtype work.** If Dynamo reports scalar
+   extraction or dynamic-shape breaks, try a no-code diagnostic such as
+   `TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1`. If the message turns into
+   "could not extract specialized integer" around `torch.linspace(H_)`,
+   slicing, or shape loops, fix/capture/cache the shape logic before adding
+   dtype changes.
+3. **Convert modules, not bound methods.** Replace a submodule with a real
+   `nn.Module`, or add a small wrapper whose tensors are registered as
+   `nn.Parameter(requires_grad=False)` or `register_buffer(...)`. Do not attach
+   raw tensors or child modules that reference their parent layer.
+4. **Keep dtype boundaries explicit.** Cast inputs once at the module boundary,
+   run the hot linear/FFN in BF16/FP16, then cast back once before FP32 residual
+   add / LayerNorm if the surrounding block stays FP32.
+5. **Benchmark the combination, not only the GEMM.** A low-precision `addmm`
+   microbench can be 2-5x faster while e2e is flat or slower because of casts,
+   layout copies, BMM, or graph breaks.
+
+Promotion checklist:
+
+| Check | Pass condition |
+|---|---|
+| Correctness | same user-visible result, plus logits/actions close enough for the task |
+| Device registration | no CPU constants in compiled graph; weights/scales are parameters or buffers on the target device |
+| Graph breaks | count and source are no worse than FP32 compile baseline |
+| Latency | beats FP32 compile baseline, not just eager FP32 |
+| Fallback | can disable the dtype wrapper and run the original PyTorch path |
+
+Avoid these patterns:
+
+- **Global autocast as the first fix** — it often expands cast/layout work and
+  can make BMM or custom ops slower.
+- **Monkey-patching `layer.forward_ffn` with a closure over raw tensors** —
+  Dynamo may treat the tensors as CPU constants or fail fake-tensor device
+  propagation.
+- **Attaching a wrapper module that stores `self.layer = parent_layer`** — this
+  creates module traversal recursion.
+- **Leaving dynamic shape construction inside the compiled block** when the
+  shapes are fixed for inference. Cache reference grids/proposals or compute
+  Python ints outside the compiled region.
+
 ### Step 6 — Validate numerical correctness with `cos_max`
 
 For every kernel swap, dump `(layer_in, layer_out)` for the wrapped op and
@@ -323,7 +409,7 @@ compare against the PyTorch baseline (`cos_max` + bisect harness →
 
 - `cos > 0.9999` → bit-equal range, pass.
 - `cos 0.99 – 0.9999` → numerical drift, acceptable.
-- `cos < 0.99` → bug. Bisect using the ATOM `dump-bisect-debug` skill (see §6).
+- `cos < 0.99` → bug. Bisect using the ATOM `dump-bisect-debug` skill (see §7).
 
 Non-negotiable for VLA: tiny per-op drift can flip the discrete action token
 and silently tank success rate.
@@ -332,13 +418,14 @@ and silently tank success rate.
 
 Re-run `rocm-perf-analysis`. Capture each AITER swap as a row in the
 report's "kernel-swap deltas" table (per-stage latency / throughput / VRAM).
-File any new gap discovered against the upstream from §5.
+File any new gap discovered against the upstream from §6.
 
 ---
 
 ## 5. Critical pitfalls
 
-Six failure modes that cost the most time. Each maps to a pattern from §2.
+Eight failure modes that cost the most time. Each maps to a pattern from §2
+or GDINO-15/16/17.
 
 1. **Calling AITER raw from `models/*.py`** — breaks TP, quant, CK shuffle.
    Always wrap (Pattern A).
@@ -346,11 +433,17 @@ Six failure modes that cost the most time. Each maps to a pattern from §2.
    outputs, not a crash. Verify with `cos_max` (Pattern B + Step 6).
 3. **Editing a `@support_torch_compile`-decorated module post-decoration** —
    Dynamo breaks. Instrument at the call site (Pattern D).
-4. **`fork` instead of `spawn` for multiprocessing** — CUDA re-init crash.
+4. **`fork` instead of `spawn` for multiprocessing** — CUDA/HIP runtime re-init crash.
 5. **Mixing ROCm versions in one env** — AITER CK (7.x) + xformers / gsplat
    / pytorch3d (6.4 wheels) doesn't link. Pick one per env (§1).
 6. **`FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE` missing** at install or
    runtime — FA2 Triton import fails on ROCm.
+7. **Targeted dtype monkey patches using raw tensors** — Dynamo/fake tensors can
+   see CPU constants (`cuda:0` input vs CPU weight) or fail device propagation.
+   Use real module parameters/buffers and move the wrapper to device.
+8. **Treating `TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1` as a fix** — it is a
+   diagnostic. If breaks become dynamic `torch.linspace(H_)` / slice-shape
+   errors, make shapes static/cached or move that logic outside compile.
 
 ---
 
@@ -384,6 +477,7 @@ Every kernel gap discovered should land as an issue or PR upstream.
 | Capture a PyTorch trace | ATOM `capture-trace` skill (`<ATOM repo>/.claude/skills/capture-trace/SKILL.md`) |
 | Triage a GPU memory-access fault / kernel hang | ATOM `debug-agent-locate-kernel` skill |
 | Bisect a numerical correctness regression | ATOM `dump-bisect-debug` skill |
+| Consult prior-art for kernel-loop structure or CUDA/Triton implementation ideas | [KernelPilot](https://github.com/BBuf/kernel-pilot) / KernelWiki, adapted to ROCm evidence and APIs |
 | Full LLM serving optimization (vLLM / SGLang) | [AMD-AIM/inference-skill](https://github.com/AMD-AIM/inference-skill) — use directly; out of scope for this skill |
 
 Three-skill pipeline:
@@ -392,20 +486,4 @@ Three-skill pipeline:
 [ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
  (make it run)           (measure + classify)           (optimize selected family)
 ```
-
-<!--
-Maintainer note (not part of the skill body) — why this skill exists alongside `inference-skill`.
-Kept here so future agents/maintainers don't re-derive the boundary or accidentally merge the two.
-
-| dimension              | inference-skill (LLM)                                                                       | rocm-kernels-for-3d (3D/VLA/WM)                                  |
-|------------------------|---------------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| target model lives in  | already running inside vLLM / SGLang                                                        | raw PyTorch repo, never framework-adopted                        |
-| how AITER engages      | framework flag: `VLLM_ROCM_USE_AITER=1` already swaps ~80% of kernels (see [`aiter-api.md`](aiter-api.md) §13/14) | manual wrap into model files; no framework dispatch exists       |
-| what's left to solve   | long-tail kernels vLLM hasn't integrated, or integrated too slowly                          | the first 80% too — every wrapper by hand                        |
-| main automation path   | GEAK auto-generates Triton kernel + plugin injection into runtime                           | agent copies ATOM patterns and writes wrappers                   |
-| needs a cookbook?      | no — templates baked into `generate_*_plugin.py`; GEAK outputs kernels not wrappers         | yes — no equivalent plugin framework, so wrappers must be hand-written |
-
-Rule: when the target repo is a 3D / VLA / WM / DiT / SLAM / NeRF / Mamba-hybrid raw PyTorch repo,
-use this skill. Anything that already runs in vLLM/SGLang is out of scope — route to inference-skill.
--->
 

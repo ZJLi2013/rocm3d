@@ -245,17 +245,16 @@ If `requirements.txt` pins `numpy==1.24.x`, pip build isolation pulls old setupt
 
 Fix: skip the pin, use Docker-preinstalled numpy 2.x (add `numpy` to `EXCLUDE_PKGS`).
 
-### flash-attn: Triton 路径 vs CK 路径
+### flash-attn install pitfalls
 
-| 路径 | ROCm | 安装方式 | 编译时间 | 性能 |
-|------|------|---------|---------|------|
-| **Triton** (推荐) | 6.4 / 7.2 | `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE pip install flash-attn` | **37s** (纯 Python wheel) | baseline |
-| **CK** | 7.2 | `pip install flash-attn` (不设 env var) | ~40 min (2199 .hip files) | **-25%** |
+The backend choice lives in the Flash Attention tier table above. Keep only the
+install gotchas here:
 
-- **Triton 路径**: 安装和运行时均需 `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE`；Triton 内核首次调用 JIT 编译
-- **CK 路径**: 无需额外 env var，但编译耗时长；ROCm 7.2 上性能更优，适合需要极致 FA 性能的场景
-- **注意**: `pypi.amd.com` 不提供 flash-attn wheel，两条路径均从 pypi.org 源码安装
-- **注意**: `rocm6.4.3` Docker 镜像的 Triton 是损坏的 editable install，需 `pip install --force-reinstall triton --index-url https://download.pytorch.org/whl/rocm6.4`
+- FA2 Triton requires `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE` at install and
+  runtime; first use JIT-compiles Triton kernels.
+- `pypi.amd.com` does not provide a flash-attn wheel; install from PyPI source.
+- The `rocm6.4.3` Docker image may ship a broken editable Triton install; repair
+  with `pip install --force-reinstall triton --index-url https://download.pytorch.org/whl/rocm6.4`.
 
 ---
 
@@ -267,33 +266,12 @@ python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is
 
 ---
 
-## Verified Repos
-
-| Repo | Domain | Key ROCm Libs | Status |
-|------|--------|--------------|--------|
-| PartCrafter | Part-aware 3D gen | pytorch3d | ✅ |
-| ml-sharp | 3D recon | gsplat | ✅ |
-| shap-e | Text/image→3D | — | ✅ |
-| dust3r/fast3r | Dense stereo | croco ext | ✅ |
-| Difix3D | 3D diffusion | xformers | ✅ |
-| vggt | Visual grounding | — | ✅ |
-| Depth-Anything-3 | Mono depth + 3DGS | xformers, gsplat | ✅ |
-| Matrix-Game | Video world model | flash-attn→AITER CK | ✅ |
-| **Hunyuan3D-2.1** | Image-to-3D + PBR | — (纯 PyTorch, AOTriton FA) | ✅ shape gen (60s, 344K verts, MI300X) |
-| **TRELLIS.2** | Image-to-3D (O-Voxel) | flash-attn ✅ (Triton AMD), flex_gemm ✅, cumesh ✅, nvdiffrast ✅, o-voxel ✅ | ✅ 5.99M verts, 12.2M faces, ~5min MI300X |
-| **SegviGen** | 3D part segmentation (TRELLIS.2-based) | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ full_seg inference, 15.2s MI300X |
-| **TokenGS** | 3D Gaussian prediction (feed-forward) | amd_gsplat, fused-ssim (HIP native) | ✅ eval 1.25s/scene, PSNR 14.43, MI300X |
-| **Lyra-2** | Image→3D world (Wan2.1 + DA3 + GS) | flash-attn, TE→PyTorch SDPA, megatron stub | ✅ zoom-in/out video gen, 14B model, ~2h, MI300X |
-| **video_to_world** | Video→3D recon | tinycudann→tiny-rocm-nn, gsplat, xformers | 🔶 Stage 0-1b PASS, split_k fix 待重跑 |
-| **PointTransformerV3** | Point cloud backbone | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ ModelNet40 40/40 PASS, MI300X |
-| **FoundationStereo** | Stereo depth estimation | xformers (0.0.33.post2, torch 2.9.1) | ✅ 540x960 inference 158s, 374.5M params, MI300XHF |
-| **GraspNet-baseline** | 6-DoF grasp detection | pointnet2 (hipify), knn_pytorch shim | ✅ 119 grasps, 5.54s inference, MI300XHF |
-
----
-
 ## With Other Skills
 
 | Skill | Interaction |
 |-------|-------------|
 | **cursor-overnight-task-manager** | Phase 3 uses this table for ROCm lib install |
 | **gpu-cluster-resource-manager** | Node selection considers ROCm version compatibility |
+
+Verified repo status lives in the root `README.md` / `README_EN.md`; keep this
+skill focused on install, dependency replacement, and backend sanity checks.

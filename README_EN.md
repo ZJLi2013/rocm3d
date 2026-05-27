@@ -4,18 +4,22 @@
 
 A set of Cursor agent skills targeting open-source repos in 3D / video / world models / VLA / embodied AI, for **porting, performance analysis, and kernel optimization** on AMD ROCm.
 
-## Core Value (three skills, three responsibilities)
+## Core Value (four skills, four responsibilities)
 
 ```
 [ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
- (make the repo run)      (measure + classify kernels)  (optimize by kernel family)
+ (make the repo run)      (measure + classify kernels)  (wire existing fast kernels)
+
+                                   ↘ [ rocm-new-kernels ]
+                                      (design missing kernels)
 ```
 
 | Skill | Problem it solves | When to invoke |
 |---|---|---|
 | [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | Generate ROCm install scripts and verify whether gsplat / spconv / nvdiffrast / flash-attn use the intended ROCm backend | When the repo doesn't run yet, or when a profile top kernel is library-owned |
 | [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS; produces full kernel ranking + forced kernel_type classification + handoff | After the repo runs, when deciding what to optimize |
-| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | Optimize kernel families with a concrete owner: attention / GEMM / conv / sparse conv / collective comm / fused elementwise. `copy/layout`, tensor indexing, and dedicated libraries such as `gsplat` / `nvdiffrast` route through handoff instead | After getting the classified perf-analysis target list |
+| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | Wire existing AITER/ATOM/ROCm-library fast paths into 3D/VLA/WM models: attention / GEMM / norm / quant / MoE / compile / loader / validation | When the top kernel has a concrete existing owner |
+| [`rocm-new-kernels`](.cursor/skills/rocm-new-kernels/SKILL.md) | Design missing forward-only HIP/Triton/CK kernels with K/R/W, standalone harnesses, ledgers, MI300/MI350 hardware knowhow, and GEAK-style iteration | For missing ops such as GroundingDINO MsDeformAttn |
 
 ## Usage
 
@@ -27,6 +31,8 @@ Invoke the appropriate skill in Cursor based on your scenario:
 "Use rocm-perf-analysis skill to run a phase-split roofline report for <model>"
 
 "Use rocm-kernels-for-3d skill to optimize <model>'s top kernels by kernel_type from perf-analysis"
+
+"Use rocm-new-kernels skill to design a ROCm forward kernel for <model>'s <missing-op>"
 ```
 
 ## Supported Repos
@@ -49,6 +55,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [facebookresearch/sam2](https://github.com/facebookresearch/sam2) | Image/video segmentation | 🟢 Apache-2.0 | — (SAM2 image predictor) | ✅ Verified (`sam2.1_hiera_base_plus.pt`, official `truck.jpg` image example) |
 | [IDEA-Research/Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2) | Grounded detection + SAM2 segmentation/tracking | 🟢 Apache-2.0 + upstream component licenses | SAM2, HF GroundingDINO | ✅ Verified (HF GroundingDINO tiny + SAM2.1 base-plus, 4 annotations; recommended base) |
 | [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ Verified (legacy image e2e outputs `truck` mask; compatibility fallback) |
+| [DCDmllm/InstructSAM](https://github.com/DCDmllm/InstructSAM) | Instruction-driven instance segmentation (Qwen3-VL + SAM3) | ❓ No LICENSE file; `facebook/sam3` gated weights | flash-attn (FA2 Triton), SAM3 | ✅ Verified (InstructSAM-2B + `fused_attention`, `truck.jpg` outputs 10 masks, peak 6016MB) |
 
 ### 3D Generation & Reconstruction
 
@@ -157,10 +164,12 @@ rocm3d/
     ├── rocm-perf-analysis/                # Skill 2: performance analysis
     │   ├── SKILL.md                       #   TraceLens phase-split roofline workflow
     │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS table
-    └── rocm-kernels-for-3d/               # Skill 3: kernel-family optimization
-        ├── SKILL.md                       #   attention/GEMM/conv/sparse/comm/elementwise routing + recipes
-        ├── cookbook.md                    #   Executable code skeletons: model_ops wrappers / loader / compile / validate / version switch
-        └── aiter-api.md                   #   AITER kernel reference (dtype matrix + SGLang/vLLM integration map, self-contained)
+    ├── rocm-kernels-for-3d/               # Skill 3: wire existing fast kernels
+    │   ├── SKILL.md                       #   AITER/ATOM wrapper routing + recipes
+    │   ├── cookbook.md                    #   Executable code skeletons: model_ops wrappers / loader / compile / validate / version switch
+    │   └── aiter-api.md                   #   AITER kernel reference (dtype matrix + SGLang/vLLM integration map, self-contained)
+    └── rocm-new-kernels/                  # Skill 4: design missing kernels
+        └── SKILL.md                       #   K/R/W + harness + MI300/MI350 knowhow + GEAK-style iteration
 ```
 
 Design principles:
@@ -180,4 +189,5 @@ Design principles:
 | Kernel-family optimization routing / recipes | [`.cursor/skills/rocm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) |
 | Executable code skeletons (model_ops / loader / compile / validate) | [`.cursor/skills/rocm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-kernels-for-3d/cookbook.md) |
 | AITER kernel reference (dtype matrix + integration map) | [`.cursor/skills/rocm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-kernels-for-3d/aiter-api.md) |
+| Missing-op HIP/Triton/CK kernel design | [`.cursor/skills/rocm-new-kernels/SKILL.md`](.cursor/skills/rocm-new-kernels/SKILL.md) |
 | Supported repo list (tables above) | This README_EN.md |
