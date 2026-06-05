@@ -1,6 +1,6 @@
 ---
 name: rocm-lib-compat
-version: 2.6.0
+version: 2.6.1
 author: ZJLi2013
 description: |
   ROCm library compatibility reference for porting ML repos (3D generation,
@@ -93,6 +93,8 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | **torch-geometric** | `pip install torch_geometric torch-scatter-rocm torch-sparse-rocm torch-cluster-rocm` | [pyg-rocm-build](https://github.com/ZJLi2013/pyg-rocm-build) PyPI wheels; `torch_scatter` / `torch_sparse` / `torch_cluster` 原始 import name 不变; PTv3 ROCm 7.2 MI300X 验证通过 |
 | **apex** | `git clone https://github.com/ROCm/apex && cd apex && pip install . --no-build-isolation` | [ROCm/apex](https://github.com/ROCm/apex); 已含于 ROCm PyTorch Docker; hipblasLT on gfx942 |
 | **diff-gaussian-rasterization** | Source build with `PYTORCH_ROCM_ARCH=gfx942` | 3DGS submodule; hipcc compatible ✅ |
+| **diff-gaussian-rasterization-w-pose** | `PYTORCH_ROCM_ARCH=gfx942 pip install git+https://github.com/ZJLi2013/diff-gaussian-rasterization-w-pose.git@rocm_support --no-build-isolation` | Gaussian Splatting SLAM pose-Jacobian fork; ROCm source fixes in [PR #4](https://github.com/rmurai0610/diff-gaussian-rasterization-w-pose/pull/4); import name remains `diff_gaussian_rasterization` ✅ |
+| **diff-triangle-rasterization** | `PYTORCH_ROCM_ARCH=gfx942 pip install git+https://github.com/ZJLi2013/diff-triangle-rasterization.git@rocm_support --no-build-isolation` | TriSplat triangle rasterizer; ROCm source fixes in [PR #3](https://github.com/trianglesplatting/diff-triangle-rasterization/pull/3); import name `diff_triangle_rasterization` ✅ |
 | **simple-knn** | Source build with `PYTORCH_ROCM_ARCH=gfx942` | 3DGS submodule; hipcc compatible ✅ |
 | **bitsandbytes** | `pip install bitsandbytes` (≥v0.45.3) | ROCm 6.4+ supported since v0.45.3 ✅ |
 | **custom_rasterizer** (Hunyuan3D) | `pip install -e . --no-build-isolation` | Pure PyTorch C++ ext, no raw CUDA kernel ✅ |
