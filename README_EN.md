@@ -75,6 +75,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | 🟢 MIT | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified ([ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)) |
 | [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | Dense 3D reconstruction (VGGT-like) | 🟢 Apache-2.0 | — (AOTriton SDPA) | ✅ Verified (church 286 frames @ 2.5 FPS) |
 | [cvg/resplat](https://github.com/cvg/resplat) | Feed-forward 3DGS | 🟢 MIT | gsplat, pointops | ✅ Verified (PSNR 31.17 / SSIM 0.954) |
+| [cvg/ZipSplat](https://github.com/cvg/ZipSplat) | Feed-forward 3D Gaussian compression / reconstruction | 🟢 Apache-2.0 | **amd_gsplat**, AOTriton SDPA | ✅ Verified (office 5 images, 51,840 Gaussians, render PASS; demo-candidate) |
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ Verified (66K verts, ~107s) |
 | [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | Feed-forward 3DGS prediction | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ Verified (1.25s/scene, MI300X) |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D perception (VGGT) | 🟢 Apache-2.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (poses+depth+points, ~70s) |
@@ -84,6 +85,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animation-ready 3D assets (TRELLIS) | ❓ No LICENSE file | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
 | [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | Stereo depth estimation (Transformer) | 🔴 **NVIDIA License (non-commercial)** — study only | xformers | ✅ Verified (540x960 inference, 374.5M params, MI300XHF) |
 | [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ No LICENSE file | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ Verified (8.7MB GLB, ~198s, MI300X) |
+| [VAST-AI-Research/TripoSplat](https://github.com/VAST-AI-Research/TripoSplat) | Single-image 3D Gaussian generation | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (20-step / 262144 Gaussian `.ply/.splat`, visual check passed, MI300X) |
 
 | [Fictionarry/AmbiSuR](https://github.com/Fictionarry/AmbiSuR) | 3DGS surface reconstruction (ICML'26, DA3 depth) | ❓ No LICENSE file | diff-plane-rasterization (hipcc), simple-knn, pytorch3d | ✅ Verified (ROCmBuildExtension 8 fixes, MI300X) |
 | [AaronNZH/LeGS](https://github.com/AaronNZH/LeGS) | 3DGS RL density control (ICML'26) | ❓ No LICENSE file | diff-gaussian-rasterization_fastgs (hipcc), simple-knn, fused-ssim | ✅ Verified (100 iter @ 105 it/s, MI300X) |
