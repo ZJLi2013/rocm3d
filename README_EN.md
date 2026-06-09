@@ -26,7 +26,7 @@ A set of Cursor agent skills targeting open-source repos in 3D / video / world m
 Invoke the appropriate skill in Cursor based on your scenario:
 
 ```
-"Use rocm-lib-compat skill to generate ROCm install script for https://github.com/<owner>/<repo>"
+"Use rocm-lib-compat skill to port and verify https://github.com/<owner>/<repo> on MI300 + ROCm"
 
 "Use rocm-perf-analysis skill to run a phase-split roofline report for <model>"
 

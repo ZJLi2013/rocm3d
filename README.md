@@ -37,7 +37,7 @@ handoff owner，以及是否存在 same-config NVIDIA baseline。
 在 Cursor 中按场景调用对应 skill：
 
 ```
-"使用 rocm-lib-compat skill，给 https://github.com/<owner>/<repo> 生成 ROCm install 脚本"
+"使用 rocm-lib-compat skill，在 MI300 + ROCm 上迁移并验证 https://github.com/<owner>/<repo>"
 
 "使用 rocm-perf-analysis skill，给 <model> 跑 phase-split roofline 报告"
 
