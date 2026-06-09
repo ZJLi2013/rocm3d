@@ -145,13 +145,14 @@ handoff owner，以及是否存在 same-config NVIDIA baseline。
 
 ### 抓取 (Grasping)
 
-> **⚠️ License 警告：NVlabs 的两个 repo (GraspGen, contact_graspnet) 为 NVIDIA 自定义许可（非商用），模型权重同样受限。**
-> **仅供学术研究 / 技术验证使用 (study purpose only)，严禁商业用途或再分发。**
+> **⚠️ License 警告：NVlabs 抓取相关 repo / 模型权重包含 NVIDIA 自定义或 Open Model License 条款，部分仅限非商用或受限分发。**
+> **仅供学术研究 / 技术验证使用 (study purpose only)，使用前请逐项确认代码与权重许可证。**
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
 | [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF 抓取检测 (GraspNet-1Billion) | ❓ 无明确许可 | pointnet2 (HIPified), knn shim (纯 PyTorch) | ✅ 已验证（325/119 grasps, 5.54s, MI300XHF） |
 | [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF 扩散抓取生成 | 🔴 **NVIDIA License (非商用)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ 已验证（3 物体 demo, 0.4-1.9s, MI300X） |
+| [NVlabs/GraspGenX](https://github.com/NVlabs/GraspGenX) | 跨 embodiment 6-DoF 抓取生成 | 🔴 代码 Apache-2.0; **模型权重 NVIDIA Open Model License** | — (纯 PyTorch; end2end cuRobo/Newton 非必需) | ✅ 已验证（ROCm inference） |
 | [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF 场景级抓取 | 🔴 **NVIDIA License (非商用)** — study only | — (纯 PyTorch PointNet2, 零迁移) | ✅ 已验证（3 场景 308-382 grasps, 6-10s, MI300X） |
 
 ### 部分通过 (需额外修复)

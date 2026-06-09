@@ -130,13 +130,14 @@ The following repos have been verified on AMD MI300X with ROCm.
 
 ### Grasping
 
-> **⚠️ License Warning: The two NVlabs repos (GraspGen, contact_graspnet) use a custom NVIDIA License (non-commercial). Model weights are equally restricted.**
-> **For academic research / technical verification only (study purpose only). Commercial use and redistribution are strictly prohibited.**
+> **⚠️ License Warning: NVlabs grasping repos / model weights include NVIDIA custom or Open Model License terms; some are non-commercial or distribution-restricted.**
+> **For academic research / technical verification only (study purpose only). Confirm code and weight licenses repo by repo before use.**
 
 | Repo | Domain | License | Key ROCm Libs | Status |
 |------|--------|---------|---------------|--------|
 | [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF grasp detection (GraspNet-1Billion) | ❓ No explicit license | pointnet2 (HIPified), knn shim (pure PyTorch) | ✅ Verified (325/119 grasps, 5.54s, MI300XHF) |
 | [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF diffusion grasp generation | 🔴 **NVIDIA License (non-commercial)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ Verified (3 objects demo, 0.4-1.9s, MI300X) |
+| [NVlabs/GraspGenX](https://github.com/NVlabs/GraspGenX) | Cross-embodiment 6-DoF grasp generation | 🔴 Code Apache-2.0; **model weights NVIDIA Open Model License** | — (pure PyTorch; end2end cuRobo/Newton optional) | ✅ Verified (ROCm inference) |
 | [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF scene-level grasping | 🔴 **NVIDIA License (non-commercial)** — study only | — (pure PyTorch PointNet2, zero migration) | ✅ Verified (3 scenes, 308-382 grasps, 6-10s, MI300X) |
 
 ### Partially Working (needs extra fixes)
