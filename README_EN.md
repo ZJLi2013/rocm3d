@@ -13,7 +13,7 @@
 Invoke the appropriate skill in Cursor based on your scenario:
 
 ```
-"Use rocm-lib-compat skill to generate ROCm install script for https://github.com/<owner>/<repo>"
+"Use rocm-lib-compat skill to port and verify https://github.com/<owner>/<repo> on MI300 + ROCm"
 ```
 
 ## Supported Repos
