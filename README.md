@@ -2,35 +2,11 @@
 
 **中文** | [English](README_EN.md)
 
-一组 Cursor agent skill，专门面向 3D / 视频 / 世界模型 / VLA / 具身智能开源仓库在 AMD ROCm 平台上的**移植、性能分析、与 kernel 优化**。
-
-## 核心价值（四个 skill, 四个职责）
-
-```
-[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
- (让 repo 跑起来)         (量化分析 + kernel 分类)      (接入已有高性能 kernel)
-
-                                   ↘ [ rocm-new-kernels ]
-                                      (缺失 op 的新 kernel 设计)
-```
-
-受 [AI-Infra-Auto-Driven-SKILLS](https://github.com/BBuf/AI-Infra-Auto-Driven-SKILLS)
-启发，`rocm3d` 保持单一职责的多 skill 架构，并吸收它的**证据闭环**：
-
-```
-repo/env manifest → bounded workload → phase-split profile → action table → upstream/skill-gap log
-```
-
-这层不是新的 skill，而是所有 ROCm 3D 迁移与优化任务的交付标准：
-每次结论都要能追到具体环境、输入 workload、raw artifacts、kernel 分类、
-handoff owner，以及是否存在 same-config NVIDIA baseline。
+`rocm3d` 是面向 3D / 视频 / 世界模型 / VLA / 具身智能开源仓库的 ROCm 兼容性 skill 集合。Public release 版本聚焦一个稳定入口：
 
 | Skill | 解决什么问题 | 何时调用 |
 |---|---|---|
-| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | 给 CUDA-only repo 出 ROCm 安装脚本，并确认 gsplat / spconv / nvdiffrast / flash-attn 等是否走正确 ROCm backend | repo 还跑不起来，或 profile top 落在库级 kernel 时 |
-| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS，输出全 kernel ranking + 强制 kernel_type 分类 + handoff | repo 跑通后，决定优化方向时 |
-| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | 把已有 AITER/ATOM/ROCm-library 高性能路径接入 3D/VLA/WM 模型：attention / GEMM / norm / quant / MoE / compile / loader / validation | top kernel 已有明确 kernel owner 时 |
-| [`rocm-new-kernels`](.cursor/skills/rocm-new-kernels/SKILL.md) | 当 AITER/ATOM/ROCm library 没有现成 op 时，按 K/R/W + harness + ledger 设计 forward-only HIP/Triton/CK 新 kernel；包含 MI300/MI350 硬件 knowhow 与 GEAK-style iteration | 类似 GroundingDINO MsDeformAttn 这类缺失 kernel |
+| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | 给 CUDA-only repo 生成 ROCm 安装/迁移方案，并确认 xformers / gsplat / pytorch3d / nvdiffrast / spconv / flash-attn 等依赖是否有可用 ROCm 路径 | 需要把 3D / VLA / 世界模型 repo 跑在 AMD GPU 上时 |
 
 ## 使用方式
 
@@ -38,12 +14,6 @@ handoff owner，以及是否存在 same-config NVIDIA baseline。
 
 ```
 "使用 rocm-lib-compat skill，给 https://github.com/<owner>/<repo> 生成 ROCm install 脚本"
-
-"使用 rocm-perf-analysis skill，给 <model> 跑 phase-split roofline 报告"
-
-"使用 rocm-kernels-for-3d skill，根据 perf-analysis 的 kernel_type 优化 <model> 的 top kernels"
-
-"使用 rocm-new-kernels skill，为 <model> 的 <missing-op> 设计 ROCm forward kernel"
 ```
 
 
@@ -145,13 +115,14 @@ handoff owner，以及是否存在 same-config NVIDIA baseline。
 
 ### 抓取 (Grasping)
 
-> **⚠️ License 警告：NVlabs 的两个 repo (GraspGen, contact_graspnet) 为 NVIDIA 自定义许可（非商用），模型权重同样受限。**
-> **仅供学术研究 / 技术验证使用 (study purpose only)，严禁商业用途或再分发。**
+> **⚠️ License 警告：NVlabs 抓取相关 repo / 模型权重包含 NVIDIA 自定义或 Open Model License 条款，部分仅限非商用或受限分发。**
+> **仅供学术研究 / 技术验证使用 (study purpose only)，使用前请逐项确认代码与权重许可证。**
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
 | [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF 抓取检测 (GraspNet-1Billion) | ❓ 无明确许可 | pointnet2 (HIPified), knn shim (纯 PyTorch) | ✅ 已验证（325/119 grasps, 5.54s, MI300XHF） |
 | [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF 扩散抓取生成 | 🔴 **NVIDIA License (非商用)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ 已验证（3 物体 demo, 0.4-1.9s, MI300X） |
+| [NVlabs/GraspGenX](https://github.com/NVlabs/GraspGenX) | 跨 embodiment 6-DoF 抓取生成 | 🔴 代码 Apache-2.0; **模型权重 NVIDIA Open Model License** | — (纯 PyTorch; end2end cuRobo/Newton 非必需) | ✅ 已验证（ROCm inference） |
 | [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF 场景级抓取 | 🔴 **NVIDIA License (非商用)** — study only | — (纯 PyTorch PointNet2, 零迁移) | ✅ 已验证（3 场景 308-382 grasps, 6-10s, MI300X） |
 
 ### 部分通过 (需额外修复)
@@ -176,39 +147,15 @@ rocm3d/
 ├── README.md                              # 项目入口（本文件）
 ├── README_EN.md                           # English version
 └── .cursor/skills/
-    ├── rocm-lib-compat/                   # Skill 1：兼容性
-    │   └── SKILL.md                       #   ROCm 库替换表 + AITER FA3
-    ├── rocm-perf-analysis/                # Skill 2：性能分析
-    │   ├── SKILL.md                       #   TraceLens phase-split roofline 工作流
-    │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS 表
-    ├── rocm-kernels-for-3d/               # Skill 3：接入已有高性能 kernel
-    │   ├── SKILL.md                       #   AITER/ATOM wrapper routing + recipe
-    │   ├── cookbook.md                    #   可执行代码骨架：model_ops wrappers / loader / compile / validate / version switch
-    │   └── aiter-api.md                   #   AITER kernel 全景速查（dtype 矩阵 + SGLang/vLLM 集成清单，自包含）
-    └── rocm-new-kernels/                  # Skill 4：缺失 op 的新 kernel 设计
-        └── SKILL.md                       #   K/R/W + harness + MI300/MI350 knowhow + GEAK-style iteration
+    └── rocm-lib-compat/
+        └── SKILL.md                       # ROCm 库替换表 + install / compatibility patterns
 ```
-
-设计原则：
-
-- **以 SKILL.md 文档为主**，不维护独立 .py 脚本。所有可执行片段以 `python -c "..."` / shell block 形式直接嵌入 markdown，agent 可以直接 copy-paste。
-- **每个 skill 单一职责**，互不污染；每个都可以独立加载，避免大 skill 被强制塞到所有 context 里。
-- **外部工具优先**：能用 [TraceLens](https://github.com/AMD-AGI/TraceLens-internal) / [AITER](https://github.com/ROCm/aiter) / [ATOM](https://github.com/ROCm/ATOM) / [inference-skill](https://github.com/AMD-AIM/inference-skill) 的就不自己写。
-- **与 AMD 官方工具链呼应**：`rocm-perf-analysis` 是 AMD-AIM 的 `inferencex-optimize` 在 3D 邻域的轻量版本，复用同样的 TraceLens + GPU peak 表 + phase-split 方法论。
-- **证据先于结论**：借鉴 `AI-Infra-Auto-Driven-SKILLS` 的 benchmark / profiler 规范，所有性能判断必须带 workload、版本、raw artifact、phase split、handoff owner；没有 same-config NV baseline 时不能把 ROCm runtime share 直接解释成 backend gap。
 
 ## 贡献
 
 | 你想新增/修改… | 更新这里 |
 |---|---|
 | ROCm 库映射（新增 repo 支持） | [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) |
-| 性能分析方法（phase split / roofline workflow） | [`.cursor/skills/rocm-perf-analysis/SKILL.md`](.cursor/skills/rocm-perf-analysis/SKILL.md) |
-| 新 GPU SKU peak TFLOPS 数据 | [`.cursor/skills/rocm-perf-analysis/gpu-specs.md`](.cursor/skills/rocm-perf-analysis/gpu-specs.md) |
-| Kernel family 优化 routing / recipe | [`.cursor/skills/rocm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) |
-| 可执行代码骨架（model_ops / loader / compile / validate） | [`.cursor/skills/rocm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-kernels-for-3d/cookbook.md) |
-| AITER kernel 全景速查（dtype 矩阵 + 集成清单） | [`.cursor/skills/rocm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-kernels-for-3d/aiter-api.md) |
-| 缺失 op 的新 HIP/Triton/CK kernel 设计 | [`.cursor/skills/rocm-new-kernels/SKILL.md`](.cursor/skills/rocm-new-kernels/SKILL.md) |
 | 已支持的 repo 列表（上方表格） | 本 README.md |
-## Reference
 
-[AI-Infra-Auto-Driven-SKILLS](https://github.com/BBuf/AI-Infra-Auto-Driven-SKILLS)
+

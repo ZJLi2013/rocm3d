@@ -6,13 +6,13 @@ description: |
   ROCm library compatibility reference for porting ML repos (3D generation,
   reconstruction, world models, VLA, video generation) to AMD GPUs.
   Provides canonical CUDA→ROCm replacement table, AITER flash-attn integration,
-  Docker base images, dependency cleaning patterns, and perf handoff routing
+  Docker base images, dependency cleaning patterns, and backend sanity checks
   when a profile is dominated by library-owned kernels such as gsplat, spconv,
   nvdiffrast, pytorch3d raster, torch-scatter, or flash-attn.
   Use when adapting a repo to ROCm, generating install scripts, replacing
   CUDA-specific libraries (xformers, gsplat, pytorch3d, flash-attn, triton),
-  troubleshooting CUDA→ROCm build failures, or checking whether a slow kernel
-  is using the intended ROCm backend before deeper optimization.
+  troubleshooting CUDA→ROCm build failures, or checking whether an installed
+  dependency is using the intended ROCm backend.
 allowed-tools: [Read, Write, Glob, Grep, Shell]
 ---
 
@@ -22,10 +22,10 @@ When porting an ML repo to AMD ROCm, the key challenge is replacing
 CUDA-specific libraries with ROCm-compatible equivalents. This skill
 provides the canonical replacement table and install patterns.
 
-It also owns the **library-level perf handoff**: after `rocm-perf-analysis`
-identifies a top kernel, this skill answers "is the correct ROCm backend loaded,
-or are we accidentally profiling a fallback?" It does not perform kernel
-optimization itself; it routes the slow family to `rocm-kernels-for-3d`.
+It also owns **library-level backend sanity checks**: when a repo runs slowly or
+fails inside a library-owned op, this skill answers "is the correct ROCm backend
+loaded, or are we accidentally using a CPU / Python / CUDA fallback?" It does
+not perform kernel optimization itself.
 
 ---
 
@@ -150,26 +150,27 @@ export PYTORCH_ROCM_ARCH="gfx942"   # MI300X/MI300X
 
 ---
 
-## Perf Handoff Routing
+## Backend Verification Routing
 
-Use this after `rocm-perf-analysis` ranks kernels. The goal is not to tune
-everything here. The goal is to verify the intended ROCm library/backend is in
-use, then hand off to the right kernel-family owner.
+Use this when a repo runs but a library-owned op looks suspicious. The goal is
+to verify the intended ROCm library/backend is in use, then record the right
+follow-up owner if the backend itself needs work.
 
-| Profile top kernel family | Backend sanity check owned here | Handoff |
+| Suspect kernel / library family | Backend sanity check owned here | Follow-up |
 |---|---|---|
-| `spconv*`, indice pair, sparse conv | Confirm `spconv_rocm` is installed/imported, not `spconv-cu*`; run the repo's smallest sparse-conv smoke and note whether time is indice generation, gather/scatter, or GEMM | `rocm-kernels-for-3d` sparse-conv TODO; upstream `spconv_rocm` issue/PR if backend kernel is wrong |
-| `gsplat*`, Gaussian raster kernels | Confirm `amd_gsplat` package is installed from `pypi.amd.com` and import name `gsplat` resolves to compiled ROCm `csrc.so`, not a Python-only fallback | Owning library/upstream (`amd_gsplat` / repo-specific raster path). Do not route to generic `rocm-kernels-for-3d` |
-| `nvdiffrast*`, rasterize/interpolate/antialias/texture | Confirm ROCm fork is installed with the right `GPU_ARCHS`; run import + minimal raster/interpolate smoke | ROCm nvdiffrast fork / owning repo issue. Do not route to generic `rocm-kernels-for-3d` |
-| `conv2d`, `conv3d`, `miopen_convolution`, CK grouped conv, `Im3d2Col` | Confirm this is an intentional PyTorch/ROCm backend path, not CPU fallback. Record exact op names and phase (VAE encode/decode vs transformer) | `rocm-kernels-for-3d` dense/video conv + layout checklist. Do **not** default to old MIOpen tuning as the main plan |
-| `copy_`, `contiguous`, transpose/permute/layout kernels | Check whether a compatibility shim or backend conversion introduced repeated layout churn | Model-side cleanup. No `rocm-kernels-for-3d` or AITER kernel replacement unless a concrete fused pattern is identified |
-| `flash_attn`, `sdpa`, `attn_fwd` | Confirm which backend is actually used: PyTorch AOTriton SDPA, FA2 Triton, AITER Triton, or AITER CK. Installing `flash-attn` does not guarantee it is used by diffusers | `rocm-kernels-for-3d` attention/AITER section if attention is high-share |
+| `spconv*`, indice pair, sparse conv | Confirm `spconv_rocm` is installed/imported, not `spconv-cu*`; run the repo's smallest sparse-conv smoke and note whether time is indice generation, gather/scatter, or GEMM | Upstream `spconv_rocm` issue/PR if the ROCm backend is wrong |
+| `gsplat*`, Gaussian raster kernels | Confirm `amd_gsplat` package is installed from `pypi.amd.com` and import name `gsplat` resolves to compiled ROCm `csrc.so`, not a Python-only fallback | Owning library/upstream (`amd_gsplat` / repo-specific raster path) |
+| `nvdiffrast*`, rasterize/interpolate/antialias/texture | Confirm ROCm fork is installed with the right `GPU_ARCHS`; run import + minimal raster/interpolate smoke | ROCm nvdiffrast fork / owning repo issue |
+| `conv2d`, `conv3d`, `miopen_convolution`, CK grouped conv, `Im3d2Col` | Confirm this is an intentional PyTorch/ROCm backend path, not CPU fallback. Record exact op names and phase (VAE encode/decode vs transformer) | Model-side layout cleanup or backend issue with a minimal reproducer |
+| `copy_`, `contiguous`, transpose/permute/layout kernels | Check whether a compatibility shim or backend conversion introduced repeated layout churn | Model-side cleanup unless a concrete fused pattern is identified |
+| `flash_attn`, `sdpa`, `attn_fwd` | Confirm which backend is actually used: PyTorch AOTriton SDPA, FA2 Triton, AITER Triton, or AITER CK. Installing `flash-attn` does not guarantee it is used by diffusers | Attention backend issue with exact package versions and shapes |
 | `pytorch3d` raster/ops | Confirm prebuilt ROCm wheel, not source-built CPU-only binary | pytorch3d ROCm wheel / owning repo issue; not generic kernel work |
 | `torch_scatter`, `torch_sparse`, `torch_cluster` | Confirm ROCm wheels are loaded and original import names resolve correctly | If backend is correct but slow, inspect model indexing/dataflow or file against the owning library. AITER comm kernels do **not** replace tensor indexing scatter/gather |
 
-Rule: **make it run + verify the backend + route the slow family**. If the
-backend is correct but still slow, do not keep changing install recipes; move
-to `rocm-kernels-for-3d` with the profile row and a minimal reproducer.
+Rule: **make it run + verify the backend + document the slow family**. If the
+backend is correct but still slow, do not keep changing install recipes; open an
+upstream/backend follow-up with exact package versions, shapes, and a minimal
+reproducer.
 
 ---
 

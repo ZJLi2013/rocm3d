@@ -2,24 +2,11 @@
 
 [中文](README.md) | **English**
 
-A set of Cursor agent skills targeting open-source repos in 3D / video / world models / VLA / embodied AI, for **porting, performance analysis, and kernel optimization** on AMD ROCm.
-
-## Core Value (four skills, four responsibilities)
-
-```
-[ rocm-lib-compat ]   →   [ rocm-perf-analysis ]   →   [ rocm-kernels-for-3d ]
- (make the repo run)      (measure + classify kernels)  (wire existing fast kernels)
-
-                                   ↘ [ rocm-new-kernels ]
-                                      (design missing kernels)
-```
+`rocm3d` is a Cursor agent skill collection for porting 3D / video / world-model / VLA / embodied-AI repos to AMD ROCm. The public release focuses on one stable entry point:
 
 | Skill | Problem it solves | When to invoke |
 |---|---|---|
-| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | Generate ROCm install scripts and verify whether gsplat / spconv / nvdiffrast / flash-attn use the intended ROCm backend | When the repo doesn't run yet, or when a profile top kernel is library-owned |
-| [`rocm-perf-analysis`](.cursor/skills/rocm-perf-analysis/SKILL.md) | TraceLens + phase-split roofline + GPU peak TFLOPS; produces full kernel ranking + forced kernel_type classification + handoff | After the repo runs, when deciding what to optimize |
-| [`rocm-kernels-for-3d`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) | Wire existing AITER/ATOM/ROCm-library fast paths into 3D/VLA/WM models: attention / GEMM / norm / quant / MoE / compile / loader / validation | When the top kernel has a concrete existing owner |
-| [`rocm-new-kernels`](.cursor/skills/rocm-new-kernels/SKILL.md) | Design missing forward-only HIP/Triton/CK kernels with K/R/W, standalone harnesses, ledgers, MI300/MI350 hardware knowhow, and GEAK-style iteration | For missing ops such as GroundingDINO MsDeformAttn |
+| [`rocm-lib-compat`](.cursor/skills/rocm-lib-compat/SKILL.md) | Generates ROCm install / migration guidance and checks whether xformers / gsplat / pytorch3d / nvdiffrast / spconv / flash-attn have usable ROCm paths | When you need to run a 3D / VLA / world-model repo on AMD GPUs |
 
 ## Usage
 
@@ -27,12 +14,6 @@ Invoke the appropriate skill in Cursor based on your scenario:
 
 ```
 "Use rocm-lib-compat skill to generate ROCm install script for https://github.com/<owner>/<repo>"
-
-"Use rocm-perf-analysis skill to run a phase-split roofline report for <model>"
-
-"Use rocm-kernels-for-3d skill to optimize <model>'s top kernels by kernel_type from perf-analysis"
-
-"Use rocm-new-kernels skill to design a ROCm forward kernel for <model>'s <missing-op>"
 ```
 
 ## Supported Repos
@@ -130,13 +111,14 @@ The following repos have been verified on AMD MI300X with ROCm.
 
 ### Grasping
 
-> **⚠️ License Warning: The two NVlabs repos (GraspGen, contact_graspnet) use a custom NVIDIA License (non-commercial). Model weights are equally restricted.**
-> **For academic research / technical verification only (study purpose only). Commercial use and redistribution are strictly prohibited.**
+> **⚠️ License Warning: NVlabs grasping repos / model weights include NVIDIA custom or Open Model License terms; some are non-commercial or distribution-restricted.**
+> **For academic research / technical verification only (study purpose only). Confirm code and weight licenses repo by repo before use.**
 
 | Repo | Domain | License | Key ROCm Libs | Status |
 |------|--------|---------|---------------|--------|
 | [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF grasp detection (GraspNet-1Billion) | ❓ No explicit license | pointnet2 (HIPified), knn shim (pure PyTorch) | ✅ Verified (325/119 grasps, 5.54s, MI300XHF) |
 | [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF diffusion grasp generation | 🔴 **NVIDIA License (non-commercial)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ Verified (3 objects demo, 0.4-1.9s, MI300X) |
+| [NVlabs/GraspGenX](https://github.com/NVlabs/GraspGenX) | Cross-embodiment 6-DoF grasp generation | 🔴 Code Apache-2.0; **model weights NVIDIA Open Model License** | — (pure PyTorch; end2end cuRobo/Newton optional) | ✅ Verified (ROCm inference) |
 | [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF scene-level grasping | 🔴 **NVIDIA License (non-commercial)** — study only | — (pure PyTorch PointNet2, zero migration) | ✅ Verified (3 scenes, 308-382 grasps, 6-10s, MI300X) |
 
 ### Partially Working (needs extra fixes)
@@ -161,35 +143,13 @@ rocm3d/
 ├── README.md                              # Chinese entry
 ├── README_EN.md                           # English entry (this file)
 └── .cursor/skills/
-    ├── rocm-lib-compat/                   # Skill 1: compatibility
-    │   └── SKILL.md                       #   ROCm lib replacement table + AITER FA3
-    ├── rocm-perf-analysis/                # Skill 2: performance analysis
-    │   ├── SKILL.md                       #   TraceLens phase-split roofline workflow
-    │   └── gpu-specs.md                   #   MI300X/MI350X/MI355X/H100/H200/B200 peak TFLOPS table
-    ├── rocm-kernels-for-3d/               # Skill 3: wire existing fast kernels
-    │   ├── SKILL.md                       #   AITER/ATOM wrapper routing + recipes
-    │   ├── cookbook.md                    #   Executable code skeletons: model_ops wrappers / loader / compile / validate / version switch
-    │   └── aiter-api.md                   #   AITER kernel reference (dtype matrix + SGLang/vLLM integration map, self-contained)
-    └── rocm-new-kernels/                  # Skill 4: design missing kernels
-        └── SKILL.md                       #   K/R/W + harness + MI300/MI350 knowhow + GEAK-style iteration
+    └── rocm-lib-compat/
+        └── SKILL.md                       # ROCm library replacement table + install / compatibility patterns
 ```
-
-Design principles:
-
-- **SKILL.md docs as the primary surface**; no standalone .py scripts maintained. Every executable snippet is inlined as `python -c "..."` / shell blocks that the agent can copy-paste directly.
-- **One responsibility per skill**, no cross-contamination. Each skill can be loaded independently, so a large skill is never force-injected into every context.
-- **External tools first**: prefer [TraceLens](https://github.com/AMD-AGI/TraceLens-internal) / [AITER](https://github.com/ROCm/aiter) / [ATOM](https://github.com/ROCm/ATOM) / [inference-skill](https://github.com/AMD-AIM/inference-skill) over reinvention.
-- **Aligned with AMD's official toolchain**: `rocm-perf-analysis` is a lightweight, 3D-neighborhood port of AMD-AIM's `inferencex-optimize`, reusing the same TraceLens + GPU peak table + phase-split methodology.
 
 ## Contributing
 
 | What you want to add/change… | Update here |
 |---|---|
 | ROCm library mapping (new repo support) | [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) |
-| Performance analysis methodology (phase split / roofline workflow) | [`.cursor/skills/rocm-perf-analysis/SKILL.md`](.cursor/skills/rocm-perf-analysis/SKILL.md) |
-| New GPU SKU peak TFLOPS data | [`.cursor/skills/rocm-perf-analysis/gpu-specs.md`](.cursor/skills/rocm-perf-analysis/gpu-specs.md) |
-| Kernel-family optimization routing / recipes | [`.cursor/skills/rocm-kernels-for-3d/SKILL.md`](.cursor/skills/rocm-kernels-for-3d/SKILL.md) |
-| Executable code skeletons (model_ops / loader / compile / validate) | [`.cursor/skills/rocm-kernels-for-3d/cookbook.md`](.cursor/skills/rocm-kernels-for-3d/cookbook.md) |
-| AITER kernel reference (dtype matrix + integration map) | [`.cursor/skills/rocm-kernels-for-3d/aiter-api.md`](.cursor/skills/rocm-kernels-for-3d/aiter-api.md) |
-| Missing-op HIP/Triton/CK kernel design | [`.cursor/skills/rocm-new-kernels/SKILL.md`](.cursor/skills/rocm-new-kernels/SKILL.md) |
 | Supported repo list (tables above) | This README_EN.md |
