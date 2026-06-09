@@ -86,33 +86,33 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 | Library | ROCm Install | Notes |
 |---------|-------------|-------|
-| **xformers** | `pip uninstall torchvision -y && pip install xformers torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4` | ROCm 6.4 only; 必须与 torchvision/torchaudio 一次性安装 (→ torch 2.9.1 + xformers 0.0.33.post2); 分步安装会导致 torch 版本冲突 |
-| **gsplat** | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | 包名 `amd_gsplat` 含预编译 `csrc.so`; import 仍为 `gsplat`; ROCm 6.4; pypi.amd.com 上的 `gsplat` 包无 compiled ext，不可用 |
+| **xformers** | `pip uninstall torchvision -y && pip install xformers torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4` | ROCm 6.4 only; install together with torchvision/torchaudio (resolves to torch 2.9.1 + xformers 0.0.33.post2); split installs can cause torch version conflicts |
+| **gsplat** | `pip install amd_gsplat --extra-index-url=https://pypi.amd.com/rocm-6.4.3/simple/` | Package name `amd_gsplat` includes prebuilt `csrc.so`; import name remains `gsplat`; ROCm 6.4; the `gsplat` package on pypi.amd.com has no compiled extension and is not usable |
 | **pytorch3d** | `pip install https://github.com/ZJLi2013/pytorch3d/releases/download/rocm6.4-py3.12/pytorch3d-0.7.9-cp312-cp312-linux_x86_64.whl` | ROCm 6.4 only; Python 3.12 |
 | **triton** | `pip install triton --index-url https://download.pytorch.org/whl/rocm6.4` | Bundled with ROCm PyTorch; rarely needed |
-| **torch-geometric** | `pip install torch_geometric torch-scatter-rocm torch-sparse-rocm torch-cluster-rocm` | [pyg-rocm-build](https://github.com/ZJLi2013/pyg-rocm-build) PyPI wheels; `torch_scatter` / `torch_sparse` / `torch_cluster` 原始 import name 不变; PTv3 ROCm 7.2 MI300X 验证通过 |
-| **apex** | `git clone https://github.com/ROCm/apex && cd apex && pip install . --no-build-isolation` | [ROCm/apex](https://github.com/ROCm/apex); 已含于 ROCm PyTorch Docker; hipblasLT on gfx942 |
+| **torch-geometric** | `pip install torch_geometric torch-scatter-rocm torch-sparse-rocm torch-cluster-rocm` | [pyg-rocm-build](https://github.com/ZJLi2013/pyg-rocm-build) PyPI wheels; original import names remain `torch_scatter` / `torch_sparse` / `torch_cluster`; verified with PTv3 on ROCm 7.2 + MI300X |
+| **apex** | `git clone https://github.com/ROCm/apex && cd apex && pip install . --no-build-isolation` | [ROCm/apex](https://github.com/ROCm/apex); already included in ROCm PyTorch Docker; hipblasLT on gfx942 |
 | **diff-gaussian-rasterization** | Source build with `PYTORCH_ROCM_ARCH=gfx942` | 3DGS submodule; hipcc compatible ✅ |
 | **diff-gaussian-rasterization-w-pose** | `PYTORCH_ROCM_ARCH=gfx942 pip install git+https://github.com/ZJLi2013/diff-gaussian-rasterization-w-pose.git@rocm_support --no-build-isolation` | Gaussian Splatting SLAM pose-Jacobian fork; ROCm source fixes in [PR #4](https://github.com/rmurai0610/diff-gaussian-rasterization-w-pose/pull/4); import name remains `diff_gaussian_rasterization` ✅ |
 | **diff-triangle-rasterization** | `PYTORCH_ROCM_ARCH=gfx942 pip install git+https://github.com/ZJLi2013/diff-triangle-rasterization.git@rocm_support --no-build-isolation` | TriSplat triangle rasterizer; ROCm source fixes in [PR #3](https://github.com/trianglesplatting/diff-triangle-rasterization/pull/3); import name `diff_triangle_rasterization` ✅ |
 | **simple-knn** | Source build with `PYTORCH_ROCM_ARCH=gfx942` | 3DGS submodule; hipcc compatible ✅ |
 | **bitsandbytes** | `pip install bitsandbytes` (≥v0.45.3) | ROCm 6.4+ supported since v0.45.3 ✅ |
 | **custom_rasterizer** (Hunyuan3D) | `pip install -e . --no-build-isolation` | Pure PyTorch C++ ext, no raw CUDA kernel ✅ |
-| **flex_gemm** | `pip install . --no-build-isolation` (hipify 自动运行) | Triton backend 全算法 ROCm ✅; [PR #18](https://github.com/JeffreyXiang/FlexGEMM/pull/18); 合并前用 fork: `pip install git+https://github.com/ZJLi2013/FlexGEMM.git@rocm` |
-| **cumesh** | `GPU_ARCHS=gfx942 pip install . --no-build-isolation` (hipify 自动运行) | 全 3 扩展 ROCm ✅; `cuda::std::plus`→`cub::Sum`, `cuda::std::tuple`→`rocprim::tuple`, Vec3f 加 `__host__`, nvcc flags 分支; fork: `pip install git+https://github.com/ZJLi2013/CuMesh.git@rocm` |
-| **nvdiffrast** | `GPU_ARCHS=<arch> pip install git+https://github.com/ZJLi2013/nvdiffrast.git@rocm --no-build-isolation` | **ROCm 6.4 + 7.2 均验证**; RDNA3/4 (gfx1100/gfx1201) wave32 ✅ + CDNA3 (gfx942) wave64 半wavefront模拟 ✅; cudaraster 全 4 阶段 + interpolate + antialias grad + texture 全 PASS |
-| **nvdiffrec** | 同 nvdiffrast | ROCm 6.4 + 7.2; RDNA4 ✅ CDNA3 ✅ |
-| **spconv-cu\*** | `git clone -b rocm https://github.com/ZJLi2013/spconv_rocm.git && pip install -e .` | HIP kernel (indice pairs, Murmur3 hash) + C++ JIT ext + torch.mm GEMM; 28 tests PASS on MI300X; PTv3 standalone 40/40 类 inference ✅; ROCm 6.4+ / 7.2 |
+| **flex_gemm** | `pip install . --no-build-isolation` (hipify runs automatically) | All Triton backend algorithms work on ROCm ✅; [PR #18](https://github.com/JeffreyXiang/FlexGEMM/pull/18); use the fork before merge: `pip install git+https://github.com/ZJLi2013/FlexGEMM.git@rocm` |
+| **cumesh** | `GPU_ARCHS=gfx942 pip install . --no-build-isolation` (hipify runs automatically) | All 3 extensions work on ROCm ✅; `cuda::std::plus`→`cub::Sum`, `cuda::std::tuple`→`rocprim::tuple`, add `__host__` to Vec3f, branch nvcc flags; fork: `pip install git+https://github.com/ZJLi2013/CuMesh.git@rocm` |
+| **nvdiffrast** | `GPU_ARCHS=<arch> pip install git+https://github.com/ZJLi2013/nvdiffrast.git@rocm --no-build-isolation` | **Verified on both ROCm 6.4 and 7.2**; RDNA3/4 (gfx1100/gfx1201) wave32 ✅ + CDNA3 (gfx942) wave64 half-wavefront emulation ✅; all 4 cudaraster stages + interpolate + antialias grad + texture PASS |
+| **nvdiffrec** | Same as nvdiffrast | ROCm 6.4 + 7.2; RDNA4 ✅ CDNA3 ✅ |
+| **spconv-cu\*** | `git clone -b rocm https://github.com/ZJLi2013/spconv_rocm.git && pip install -e .` | HIP kernel (indice pairs, Murmur3 hash) + C++ JIT ext + torch.mm GEMM; 28 tests PASS on MI300X; PTv3 standalone inference passes 40/40 classes ✅; ROCm 6.4+ / 7.2 |
 
 **Flash Attention** (tiered strategy):
 
-| Backend | ROCm | Install | Perf | 验证 |
+| Backend | ROCm | Install | Perf | Verified |
 |---------|------|---------|------|------|
 | **FA2 Triton** | **6.4.3** | `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE pip install flash-attn` | baseline | ✅ TRELLIS.2 MI300X |
 | AITER Triton v3 | 6.4.3 | `pip install amd-aiter` (Triton path auto-selected) | ~same | ✅ HyDRA |
 | **AITER CK** | **7.2.1** | `pip install amd-aiter` (CK path auto-selected) | **-25%** | ✅ Matrix-Game (AITER ≥v0.1.13) |
 
-FA2 Triton 安装 & 运行均需 `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE`，运行时 Triton JIT 编译内核。
+FA2 Triton requires `FLASH_ATTENTION_TRITON_AMD_ENABLE=TRUE` for both installation and runtime; Triton JIT-compiles kernels at runtime.
 
 > **⚠️ PyPI package name pitfall** — AMD AITER's PyPI distribution is **`amd-aiter`** (not `aiter`). `pip install aiter` installs the 2019 "asynchronous iterators utility" stub (`aiter-0.13.20191203`), which is unrelated and silently breaks every `from aiter.ops.mha import ...` downstream. Source: [`aiter/setup.py`](https://github.com/ROCm/aiter/blob/main/setup.py) `PACKAGE_NAME = "amd-aiter"`. Default install is JIT mode (~10 s for the wheel + ~30-60 s/kernel on first use); the "30-60 min CK pre-compile" scenario only applies when explicitly setting `PREBUILD_KERNELS=1/2/3`.
 
@@ -181,8 +181,8 @@ to `rocm-kernels-for-3d` with the profile row and a minimal reproducer.
 
 ### When to use AITER vs FA2 Triton
 
-- **大部分场景**: ROCm 6.4.3 上直接 `pip install flash-attn --index-url=pypi.amd.com` 即可，不需要 AITER
-- **需要 CK 加速**: 使用 ROCm 7.2.1 镜像 + `pip install amd-aiter`（AITER ≥v0.1.13；PyPI 包名是 `amd-aiter`，**不是** `aiter` — 详见上方 FA tier table 的 pitfall note）
+- **Most cases**: On ROCm 6.4.3, `pip install flash-attn --index-url=pypi.amd.com` is enough; AITER is not required.
+- **Need CK acceleration**: Use a ROCm 7.2.1 image plus `pip install amd-aiter` (AITER >= v0.1.13; the PyPI package name is `amd-aiter`, **not** `aiter` — see the pitfall note in the FA tier table above).
 
 ### Integration Pattern (AITER)
 
@@ -198,7 +198,7 @@ Same API as `flash_attn.flash_attn_varlen_func`.
 
 ### Performance (MI300X, gfx942)
 
-| Backend | ROCm | AITER 版本 | Steady-state iter time | vs baseline |
+| Backend | ROCm | AITER Version | Steady-state iter time | vs baseline |
 |---------|------|-----------|----------------------|-------------|
 | FA2 Triton | 6.4.3 | — | ~14s | baseline |
 | AITER Triton v3 | 6.4.3 | ≥v0.1.13 | ~14.6s | ~same |
@@ -209,7 +209,7 @@ Same API as `flash_attn.flash_attn_varlen_func`.
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | `fmha_fwd.hpp` not found | CK submodule not checked out | `git submodule update --init 3rdparty/composable_kernel` |
-| xformers/gsplat/pytorch3d 不可用 | 这些库无 ROCm 7.x wheel | 仅在 repo 不依赖这些库时使用 ROCm 7.2.1 |
+| xformers/gsplat/pytorch3d unavailable | These libraries have no ROCm 7.x wheels | Use ROCm 7.2.1 only when the repo does not depend on these libraries |
 
 ---
 
@@ -218,7 +218,7 @@ Same API as `flash_attn.flash_attn_varlen_func`.
 | Library | Reason | Workaround | Verified |
 |---------|--------|------------|----------|
 | **cuda-python** | NVIDIA CUDA Python bindings | Remove if not in critical path | — |
-| **tinycudann** | CUDA hash grid + MLP | [tiny-rocm-nn](https://github.com/ZJLi2013/tiny-rocm-nn): 编译+forward ✅, backward split_k bug 已修复 (`6f32935`), video_to_world Stage 0-1b PASS, 全 pipeline 待重跑 | 2026-04-01 MI300X |
+| **tinycudann** | CUDA hash grid + MLP | [tiny-rocm-nn](https://github.com/ZJLi2013/tiny-rocm-nn): build + forward ✅, backward split_k bug fixed (`6f32935`), video_to_world Stage 0-1b PASS, full pipeline still needs rerun | 2026-04-01 MI300X |
 | **cupy-cuda12x** | NVIDIA CUDA Python array | Skip or `cupy-rocm-5-0` (limited, old ROCm) | — |
 | **auto_gptq** | CUDA quantization | Skip quantization or use GGUF | — |
 | **nvidia-cuda-nvcc** | NVIDIA compiler | Not needed on ROCm | — |
@@ -265,15 +265,6 @@ install gotchas here:
 ```bash
 python -c "import torch; print(f'torch {torch.__version__} | HIP: {torch.cuda.is_available()}')"
 ```
-
----
-
-## With Other Skills
-
-| Skill | Interaction |
-|-------|-------------|
-| **cursor-overnight-task-manager** | Phase 3 uses this table for ROCm lib install |
-| **gpu-cluster-resource-manager** | Node selection considers ROCm version compatibility |
 
 Verified repo status lives in the root `README.md` / `README_EN.md`; keep this
 skill focused on install, dependency replacement, and backend sanity checks.
