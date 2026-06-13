@@ -74,6 +74,8 @@
 | [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) | Part-aware 3D mesh generation | ❓ 待确认 | diffusers, transformers, fpsample, warp fallback | ✅ 已验证（jellyfish_car 8 parts + combined GLB, MI300X） |
 | [Fictionarry/AmbiSuR](https://github.com/Fictionarry/AmbiSuR) | 3DGS 表面重建 (ICML'26, DA3 depth) | ❓ 无 LICENSE 文件 | diff-plane-rasterization (hipcc), simple-knn, pytorch3d | ✅ 已验证（ROCmBuildExtension 8 fixes, MI300X） |
 | [AaronNZH/LeGS](https://github.com/AaronNZH/LeGS) | 3DGS RL 密度控制 (ICML'26) | ❓ 无 LICENSE 文件 | diff-gaussian-rasterization_fastgs (hipcc), simple-knn, fused-ssim | ✅ 已验证（100 iter 105 it/s, MI300X） |
+| [Luo-Yihao/FaithC](https://github.com/Luo-Yihao/FaithC) | 3D mesh tokenizer / Faithful Contouring (CVPR'26 Oral) | 🟢 Apache-2.0 | atom3d JIT, FaithC `_C` (hipify kernels.cu), torch_scatter shim | ✅ 已验证（demo.py encode→decode, GLB 输出, 0.32s, MI300X） |
+| [Duisterhof/modality-forcing](https://github.com/Duisterhof/modality-forcing) | 单 DiT 联合 image-depth 生成 (FLUX.2; joint/i2d/d2i 三模态) | 🟡 代码 Apache-2.0; 模型权重 CC BY-NC 4.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（三模态 512², text→RGB+depth+点云, 零改动, MI300X） |
 
 ### 3D/4D 生成
 

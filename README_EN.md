@@ -66,10 +66,14 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animation-ready 3D assets (TRELLIS) | ❓ No LICENSE file | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
 | [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | Stereo depth estimation (Transformer) | 🔴 **NVIDIA License (non-commercial)** — study only | xformers | ✅ Verified (540x960 inference, 374.5M params, MI300XHF) |
 | [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ No LICENSE file | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ Verified (8.7MB GLB, ~198s, MI300X) |
+| [colmap/gluemap](https://github.com/colmap/gluemap) | SfM / global mapping (VGGT backend) | ❓ TBD | pygluemap (Ceres/pybind), VGGT, CPU pycolmap | ✅ Verified (32 tests PASS; VGGT coarse demo 5 images, 22.69s) |
+| [ziplab/TriSplat](https://github.com/ziplab/TriSplat) | Feed-forward mesh / triangle splatting | 🟢 MIT | diff-gaussian-rasterization-w-pose, diff-triangle-rasterization, simple-knn, CroCo curope | ✅ Verified (ROCm native extensions; LLFF room mesh export) |
 | [VAST-AI-Research/TripoSplat](https://github.com/VAST-AI-Research/TripoSplat) | Single-image 3D Gaussian generation | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (20-step / 262144 Gaussian `.ply/.splat`, visual check passed, MI300X) |
-
+| [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) | Part-aware 3D mesh generation | ❓ TBD | diffusers, transformers, fpsample, warp fallback | ✅ Verified (jellyfish_car 8 parts + combined GLB, MI300X) |
 | [Fictionarry/AmbiSuR](https://github.com/Fictionarry/AmbiSuR) | 3DGS surface reconstruction (ICML'26, DA3 depth) | ❓ No LICENSE file | diff-plane-rasterization (hipcc), simple-knn, pytorch3d | ✅ Verified (ROCmBuildExtension 8 fixes, MI300X) |
 | [AaronNZH/LeGS](https://github.com/AaronNZH/LeGS) | 3DGS RL density control (ICML'26) | ❓ No LICENSE file | diff-gaussian-rasterization_fastgs (hipcc), simple-knn, fused-ssim | ✅ Verified (100 iter @ 105 it/s, MI300X) |
+| [Luo-Yihao/FaithC](https://github.com/Luo-Yihao/FaithC) | 3D mesh tokenizer / Faithful Contouring (CVPR'26 Oral) | 🟢 Apache-2.0 | atom3d JIT, FaithC `_C` (hipify kernels.cu), torch_scatter shim | ✅ Verified (demo.py encode→decode, GLB output, 0.32s, MI300X) |
+| [Duisterhof/modality-forcing](https://github.com/Duisterhof/modality-forcing) | Single-DiT joint image-depth generation (FLUX.2; joint/i2d/d2i) | 🟡 Code Apache-2.0; weights CC BY-NC 4.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 modes @ 512², text→RGB+depth+point cloud, zero patch, MI300X) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
