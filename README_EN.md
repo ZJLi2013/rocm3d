@@ -65,6 +65,8 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | Dense 3D reconstruction (VGGT-like) | 🟢 Apache-2.0 | — (AOTriton SDPA) | ✅ Verified (church 286 frames @ 2.5 FPS) |
 | [ChenYutongTHU/GGPT](https://github.com/ChenYutongTHU/GGPT) | Multiview 3D reconstruction (CVPR'26, PTv3 + VGGT + SfM) | 🟢 MIT | spconv_rocm, flash-attn (ROCm fork), torch_scatter shim | ✅ Verified (68MB PLY point cloud, ~11min, MI300X) |
 | [colmap/gluemap](https://github.com/colmap/gluemap) | SfM / global mapping (VGGT backend) | ❓ TBD | pygluemap (Ceres/pybind), VGGT, CPU pycolmap | ✅ Verified (32 tests PASS; VGGT coarse demo 5 images, 22.69s) |
+| [princeton-vl/DROID-SLAM](https://github.com/princeton-vl/DROID-SLAM) | Monocular/stereo/RGB-D visual SLAM (NeurIPS'21) | 🟢 BSD-3 | droid_backends (hipify kernels, portable altcorr atomics header), torch-scatter-rocm | ✅ Verified ([upstream PR #171](https://github.com/princeton-vl/DROID-SLAM/pull/171), single file; build + 220-frame ETH3D sfm_bench demo, ~15 it/s, MI300X) |
+| [princeton-vl/lietorch](https://github.com/princeton-vl/lietorch) | SE3/Sim3 Lie-group PyTorch backend (SLAM/BA building block) | 🟢 BSD-3 | lietorch_gpu.cu (hipify, `.template` disambiguator) | ✅ Verified (DROID-SLAM's Lie-group backend; [upstream PR #53](https://github.com/princeton-vl/lietorch/pull/53), single file, v0.3, MI300X) |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D perception (VGGT) | 🟢 Apache-2.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (poses+depth+points, ~70s) |
 | [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | Point cloud backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ Verified (ModelNet40 40/40 classes PASS, MI300X) |
 | [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D reconstruction | 🟡 Apple Sample Code | gsplat | ✅ Verified |
@@ -140,7 +142,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 
 | Repo | Domain | License | Key ROCm Libs | Status |
 |------|--------|---------|---------------|--------|
-| [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | Human-video→dexterous-hand retargeting (sampling-MPC physics optimization, arXiv'26) | 🟢 Code MIT | warp / mujoco_warp on ROCm (see `rocm-lib-compat`) + repo-side `mjwp.py` graph-capture→eager fallback | ✅ Verified (retargeting stages 1–5 full-config end-to-end, MPC converges object tracking pos=0.024m/quat~6.8°, MI300X; [ROCm fork `rocm-support`](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support), PR pending; reconstruction perception chain gated/blocked-assets) |
+| [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | Human-video→dexterous-hand retargeting (sampling-MPC physics optimization, arXiv'26) | 🟢 Code MIT | warp / mujoco_warp on ROCm (see `rocm-lib-compat`) + repo-side `mjwp.py` graph-capture→eager fallback | ✅ Verified (retargeting stages 1–5 end-to-end, MPC converges object tracking pos=0.024m / quat≈6.8°, MI300X; [ROCm fork](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)) |
 
 ### Grasping
 

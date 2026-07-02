@@ -67,6 +67,8 @@
 | [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | 稠密 3D 重建 (VGGT-like) | 🟢 Apache-2.0 | — (AOTriton SDPA) | ✅ 已验证（church 286 帧 2.5 FPS） |
 | [ChenYutongTHU/GGPT](https://github.com/ChenYutongTHU/GGPT) | Multiview 3D 重建 (CVPR'26, PTv3 + VGGT + SfM) | 🟢 MIT | spconv_rocm, flash-attn (ROCm fork), torch_scatter shim | ✅ 已验证（68MB PLY 点云, ~11min, MI300X） |
 | [colmap/gluemap](https://github.com/colmap/gluemap) | SfM / global mapping (VGGT backend) | ❓ 待确认 | pygluemap (Ceres/pybind), VGGT, CPU pycolmap | ✅ 已验证（32 tests PASS；VGGT coarse demo 5 images, 22.69s） |
+| [princeton-vl/DROID-SLAM](https://github.com/princeton-vl/DROID-SLAM) | 单目/双目/RGB-D 视觉 SLAM (NeurIPS'21) | 🟢 BSD-3 | droid_backends (hipify kernels, altcorr 原子头可移植化), torch-scatter-rocm | ✅ 已验证（[上游 PR #171](https://github.com/princeton-vl/DROID-SLAM/pull/171) 单文件；build + 220 帧 ETH3D sfm_bench demo, ~15 it/s, MI300X） |
+| [princeton-vl/lietorch](https://github.com/princeton-vl/lietorch) | SE3/Sim3 李群 PyTorch 后端 (SLAM/BA 基础库) | 🟢 BSD-3 | lietorch_gpu.cu (hipify, `.template` 消歧) | ✅ 已验证（DROID-SLAM 的李群后端；[上游 PR #53](https://github.com/princeton-vl/lietorch/pull/53) 单文件, v0.3, MI300X） |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D 感知 (VGGT) | 🟢 Apache-2.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（poses+depth+points, ~70s） |
 | [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | 点云 Backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ 已验证（ModelNet40 40/40 类 PASS, MI300X） |
 | [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D 重建 | 🟡 Apple Sample Code | gsplat | ✅ 已验证 |
@@ -134,14 +136,11 @@
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B 推理 | 🟢 Apache-2.0 | — (纯 PyTorch) | 🔶 大概率 |
 | [microsoft/VITRA](https://github.com/microsoft/VITRA) | Egocentric-hand VLA (PaliGemma2-3B + DiT 动作头; 人类视频→动作) | 🟢 代码 MIT；`VITRA-VLA-3B` free MIT，`paligemma2-3b` base gated（已接受） | — (纯 PyTorch/transformers==4.47.1, AOTriton SDPA) | ✅ 已验证（supported-smoke，完整推理 action `[1,16,192]`，零源码 patch, MI300X） |
 
-### 灵巧操作 / 人类示范重定向 (Dexterous Manipulation / Human-to-Robot)
-
-> 面向具身的新方向：把**互联网/第一视角/生成的人类视频**变成机器人可执行的灵巧操作。视频负责"做什么"，
-> 物理仿真（MuJoCo Warp 采样式 MPC）补回视频看不见的接触/触觉动力学。ROCm 让这套物理引擎跑在 AMD 上。
+### 灵巧操作 / 人类示范重定向 (Dexterous Manipulation / Human-to-Humanoid)
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
-| [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | 人类视频→灵巧手 重定向（采样式 MPC 物理优化, arXiv'26） | 🟢 代码 MIT | warp / mujoco_warp on ROCm（见 `rocm-lib-compat`）+ repo 侧 `mjwp.py` graph-capture→eager 回退 | ✅ 已验证（retargeting 阶段 1–5 满配置端到端，MPC 收敛 object tracking pos=0.024m/quat~6.8°, MI300X；[ROCm fork `rocm-support`](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)，PR pending；reconstruction 感知链 gated/blocked-assets） |
+| [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | 人类视频→灵巧手 重定向（采样式 MPC 物理优化, arXiv'26） | 🟢 代码 MIT | warp / mujoco_warp on ROCm（见 `rocm-lib-compat`）+ repo 侧 `mjwp.py` graph-capture→eager 回退 | ✅ 已验证（retargeting 阶段 1–5 端到端，MPC 收敛 object tracking pos=0.024m / quat≈6.8°, MI300X；[ROCm fork](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)） |
 
 ### 抓取 (Grasping)
 
