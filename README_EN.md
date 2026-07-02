@@ -28,7 +28,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 >
 > **This project only verifies ROCm technical compatibility. It does not modify or relicense the original repos. Verify license compliance before use.**
 
-### Visual Detection / Segmentation
+### Visual Detection / Segmentation / Tracking
 
 | Repo | Domain | License | Key ROCm Libs | Status |
 |------|--------|---------|---------------|--------|
@@ -37,43 +37,61 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [IDEA-Research/Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2) | Grounded detection + SAM2 segmentation/tracking | 🟢 Apache-2.0 + upstream component licenses | SAM2, HF GroundingDINO | ✅ Verified (HF GroundingDINO tiny + SAM2.1 base-plus, 4 annotations; recommended base) |
 | [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ Verified (legacy image e2e outputs `truck` mask; compatibility fallback) |
 | [DCDmllm/InstructSAM](https://github.com/DCDmllm/InstructSAM) | Instruction-driven instance segmentation (Qwen3-VL + SAM3) | ❓ No LICENSE file; `facebook/sam3` gated weights | flash-attn (FA2 Triton), SAM3 | ✅ Verified (InstructSAM-2B + `fused_attention`, `truck.jpg` outputs 10 masks, peak 6016MB) |
+| [google-deepmind/tapnet](https://github.com/google-deepmind/tapnet) (torch port [ibaiGorordo/Tapir-Pytorch-Inference](https://github.com/ibaiGorordo/Tapir-Pytorch-Inference)) | Point trajectory tracking (TAPIR; human-video pipeline component) | 🟢 Apache-2.0 | — (pure PyTorch, public weights) | ✅ Verified (supported-smoke, torch2.9.1+rocm7.2.1, zero patch, MI300X) |
 
-### 3D Generation & Reconstruction
+### Generative 3D Assets (image/text → mesh / voxel / gaussian)
 
 | Repo | Domain | License | Key ROCm Libs | Status |
 |------|--------|---------|---------------|--------|
 | [Tencent/Hunyuan3D-2](https://github.com/Tencent/Hunyuan3D-2) | Image-to-3D + PBR | 🟡 Tencent Community (custom; EU/UK restrictions; >1M MAU requires approval) | — (pure PyTorch, AOTriton FA) | ✅ Verified |
 | [wgsxm/PartCrafter](https://github.com/wgsxm/PartCrafter) | Part-aware 3D generation | 🟢 MIT | pytorch3d | ✅ Verified |
-| [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D reconstruction | 🟡 Apple Sample Code | gsplat | ✅ Verified |
 | [openai/shap-e](https://github.com/openai/shap-e) | Text/image to 3D | 🟢 MIT | — | ✅ Verified |
+| [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | 🟢 MIT | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified ([ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)) |
+| [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ No LICENSE file | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ Verified (8.7MB GLB, ~198s, MI300X) |
+| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animation-ready 3D assets (TRELLIS) | ❓ No LICENSE file | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
+| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D scene generation | 🟡 CC BY-NC-SA 4.0 | spconv_rocm, pytorch3d, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
+| [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) | Part-aware 3D mesh generation | ❓ TBD | diffusers, transformers, fpsample, warp fallback | ✅ Verified (jellyfish_car 8 parts + combined GLB, MI300X) |
+| [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ Verified (66K verts, ~107s) |
+| [Luo-Yihao/FaithC](https://github.com/Luo-Yihao/FaithC) | 3D mesh tokenizer / Faithful Contouring (CVPR'26 Oral) | 🟢 Apache-2.0 | atom3d JIT, FaithC `_C` (hipify kernels.cu), torch_scatter shim | ✅ Verified (demo.py encode→decode, GLB output, 0.32s, MI300X) |
+
+### Dense Reconstruction / Multi-view Geometry / SfM (VGGT · DUSt3R family)
+
+| Repo | Domain | License | Key ROCm Libs | Status |
+|------|--------|---------|---------------|--------|
 | [naver/dust3r](https://github.com/naver/dust3r) | Dense stereo reconstruction | 🟡 CC BY-NC-SA 4.0 | croco (ext build) | ✅ Verified |
 | [facebookresearch/fast3r](https://github.com/facebookresearch/fast3r) | Fast 3D reconstruction | 🟡 FAIR Non-Commercial | croco (ext build) | ✅ Verified |
-| [nv-tlabs/Difix3D](https://github.com/nv-tlabs/Difix3D) | 3D diffusion fixing | 🟡 NVIDIA + Stability AI (non-commercial) | xformers | ✅ Verified |
 | [facebookresearch/vggt](https://github.com/facebookresearch/vggt) | Visual grounding | 🟡 Meta VGGT License (custom) | — | ✅ Verified |
-| [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) | Monocular depth + 3DGS | 🟢 Apache-2.0 | xformers, gsplat | ✅ Verified |
-| [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS (ROCm fork) | 🟡 Inria/MPII non-commercial | diff-gaussian-rasterization | ✅ Verified |
 | [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | Map reconstruction | 🟢 Apache-2.0 | — | ✅ Verified |
-| [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | 🟢 MIT | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ Verified ([ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)) |
 | [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | Dense 3D reconstruction (VGGT-like) | 🟢 Apache-2.0 | — (AOTriton SDPA) | ✅ Verified (church 286 frames @ 2.5 FPS) |
-| [cvg/resplat](https://github.com/cvg/resplat) | Feed-forward 3DGS | 🟢 MIT | gsplat, pointops | ✅ Verified (PSNR 31.17 / SSIM 0.954) |
-| [cvg/ZipSplat](https://github.com/cvg/ZipSplat) | Feed-forward 3D Gaussian compression / reconstruction | 🟢 Apache-2.0 | **amd_gsplat**, AOTriton SDPA | ✅ Verified (office 5 images, 51,840 Gaussians, render PASS; demo-candidate) |
-| [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ Verified (66K verts, ~107s) |
-| [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | Feed-forward 3DGS prediction | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ Verified (1.25s/scene, MI300X) |
+| [ChenYutongTHU/GGPT](https://github.com/ChenYutongTHU/GGPT) | Multiview 3D reconstruction (CVPR'26, PTv3 + VGGT + SfM) | 🟢 MIT | spconv_rocm, flash-attn (ROCm fork), torch_scatter shim | ✅ Verified (68MB PLY point cloud, ~11min, MI300X) |
+| [colmap/gluemap](https://github.com/colmap/gluemap) | SfM / global mapping (VGGT backend) | ❓ TBD | pygluemap (Ceres/pybind), VGGT, CPU pycolmap | ✅ Verified (32 tests PASS; VGGT coarse demo 5 images, 22.69s) |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D perception (VGGT) | 🟢 Apache-2.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (poses+depth+points, ~70s) |
 | [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | Point cloud backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ Verified (ModelNet40 40/40 classes PASS, MI300X) |
-| [ChenYutongTHU/GGPT](https://github.com/ChenYutongTHU/GGPT) | Multiview 3D reconstruction (CVPR'26, PTv3 + VGGT + SfM) | 🟢 MIT | spconv_rocm, flash-attn (ROCm fork), torch_scatter shim | ✅ Verified (68MB PLY point cloud, ~11min, MI300X) |
-| [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D scene generation | 🟡 CC BY-NC-SA 4.0 | spconv_rocm, pytorch3d, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
-| [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | Animation-ready 3D assets (TRELLIS) | ❓ No LICENSE file | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ Verified (sparse encoder GPU PASS, MI300X) |
-| [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | Stereo depth estimation (Transformer) | 🔴 **NVIDIA License (non-commercial)** — study only | xformers | ✅ Verified (540x960 inference, 374.5M params, MI300XHF) |
-| [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ No LICENSE file | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ Verified (8.7MB GLB, ~198s, MI300X) |
-| [colmap/gluemap](https://github.com/colmap/gluemap) | SfM / global mapping (VGGT backend) | ❓ TBD | pygluemap (Ceres/pybind), VGGT, CPU pycolmap | ✅ Verified (32 tests PASS; VGGT coarse demo 5 images, 22.69s) |
+| [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D reconstruction | 🟡 Apple Sample Code | gsplat | ✅ Verified |
+| [LiteReality/LiteReality](https://github.com/LiteReality/LiteReality) | Graphics-ready 3D scene reconstruction (RGB-D, NeurIPS'25) | ❓ TBD | GroundingDINO ROCm fork (HIP MSDA), SAM ViT-H, Qwen3-VL-8B | ✅ Verified (perception core supported-demo: GroundingDINO HIP+SAM 119 detections; Qwen3-VL-8B VLM supported-smoke, MI300X; Blender Cycles CPU verified, GPU(HIP) limited on CDNA/gfx942 & known kernel-load bug on RDNA4; ~200GB material DB defer-heavy) |
+
+### Depth Estimation / Diffusion-based Geometry
+
+| Repo | Domain | License | Key ROCm Libs | Status |
+|------|--------|---------|---------------|--------|
+| [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) | Monocular depth + 3DGS | 🟢 Apache-2.0 | xformers, gsplat | ✅ Verified |
+| [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | Stereo depth estimation (Transformer) | 🔴 **NVIDIA License (non-commercial)** — study only | xformers | ✅ Verified (540x960 inference, 374.5M params, MI300X) |
+| [nv-tlabs/Difix3D](https://github.com/nv-tlabs/Difix3D) | 3D diffusion fixing | 🟡 NVIDIA + Stability AI (non-commercial) | xformers | ✅ Verified |
+| [Duisterhof/modality-forcing](https://github.com/Duisterhof/modality-forcing) | Single-DiT joint image-depth generation (FLUX.2; joint/i2d/d2i) | 🟡 Code Apache-2.0; weights CC BY-NC 4.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 modes @ 512², text→RGB+depth+point cloud, zero patch, MI300X) |
+| [haoz19/world-tracing](https://github.com/haoz19/world-tracing) | Image→multilayer geometry point cloud (scene/object/dynamic; flow-matching diffusion, Wan2.1 init) | 🟡 Code+weights CC BY-NC-ND 4.0 (weights gated, manual approval) | — (pure PyTorch, AOTriton SDPA; DINOv2/MoGe encoder; flash-attn optional) | ✅ Verified (scene `r69l` 840×840, 4.23M-point colored cloud + 360° turntable, ~79s, MI300X; object/dynamic weights gated-pending) |
+
+### 3DGS / Splatting (feed-forward · optimization · differentiable rasterizers)
+
+| Repo | Domain | License | Key ROCm Libs | Status |
+|------|--------|---------|---------------|--------|
+| [cvg/resplat](https://github.com/cvg/resplat) | Feed-forward 3DGS | 🟢 MIT | gsplat, pointops | ✅ Verified (PSNR 31.17 / SSIM 0.954) |
+| [cvg/ZipSplat](https://github.com/cvg/ZipSplat) | Feed-forward 3D Gaussian compression / reconstruction | 🟢 Apache-2.0 | **amd_gsplat**, AOTriton SDPA | ✅ Verified (office 5 images, 51,840 Gaussians, render PASS; demo-candidate) |
+| [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | Feed-forward 3DGS prediction | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ Verified (1.25s/scene, MI300X) |
 | [ziplab/TriSplat](https://github.com/ziplab/TriSplat) | Feed-forward mesh / triangle splatting | 🟢 MIT | diff-gaussian-rasterization-w-pose, diff-triangle-rasterization, simple-knn, CroCo curope | ✅ Verified (ROCm native extensions; LLFF room mesh export) |
 | [VAST-AI-Research/TripoSplat](https://github.com/VAST-AI-Research/TripoSplat) | Single-image 3D Gaussian generation | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (20-step / 262144 Gaussian `.ply/.splat`, visual check passed, MI300X) |
-| [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) | Part-aware 3D mesh generation | ❓ TBD | diffusers, transformers, fpsample, warp fallback | ✅ Verified (jellyfish_car 8 parts + combined GLB, MI300X) |
+| [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS (ROCm fork) | 🟡 Inria/MPII non-commercial | diff-gaussian-rasterization | ✅ Verified |
 | [Fictionarry/AmbiSuR](https://github.com/Fictionarry/AmbiSuR) | 3DGS surface reconstruction (ICML'26, DA3 depth) | ❓ No LICENSE file | diff-plane-rasterization (hipcc), simple-knn, pytorch3d | ✅ Verified (ROCmBuildExtension 8 fixes, MI300X) |
 | [AaronNZH/LeGS](https://github.com/AaronNZH/LeGS) | 3DGS RL density control (ICML'26) | ❓ No LICENSE file | diff-gaussian-rasterization_fastgs (hipcc), simple-knn, fused-ssim | ✅ Verified (100 iter @ 105 it/s, MI300X) |
-| [Luo-Yihao/FaithC](https://github.com/Luo-Yihao/FaithC) | 3D mesh tokenizer / Faithful Contouring (CVPR'26 Oral) | 🟢 Apache-2.0 | atom3d JIT, FaithC `_C` (hipify kernels.cu), torch_scatter shim | ✅ Verified (demo.py encode→decode, GLB output, 0.32s, MI300X) |
-| [Duisterhof/modality-forcing](https://github.com/Duisterhof/modality-forcing) | Single-DiT joint image-depth generation (FLUX.2; joint/i2d/d2i) | 🟡 Code Apache-2.0; weights CC BY-NC 4.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 modes @ 512², text→RGB+depth+point cloud, zero patch, MI300X) |
 
 ### 3D/4D Generation (AI-generated scripts)
 
@@ -112,6 +130,17 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [starVLA/starVLA](https://github.com/starVLA/starVLA) | VLA framework (Qwen3-VL) | 🟢 MIT | — (pure PyTorch, deepspeed) | ✅ Verified (LIBERO avg 97.8%) |
 | [JIAjindou/A2A_Flow_Matching](https://github.com/JIAjindou/A2A_Flow_Matching) | Action-to-Action Flow Matching (RSS'26) | ❓ No LICENSE file | — (pure PyTorch, torchcfm) | ✅ Verified (GPU smoke test PASS, MI300X) |
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B inference | 🟢 Apache-2.0 | — (pure PyTorch) | 🔶 Likely |
+| [microsoft/VITRA](https://github.com/microsoft/VITRA) | Egocentric-hand VLA (PaliGemma2-3B + DiT action head; human-video→action) | 🟢 Code MIT; `VITRA-VLA-3B` free MIT, `paligemma2-3b` base gated (accepted) | — (pure PyTorch/transformers==4.47.1, AOTriton SDPA) | ✅ Verified (supported-smoke, full inference action `[1,16,192]`, zero source patch, MI300X) |
+
+### Dexterous Manipulation / Human-to-Robot
+
+> A new embodied direction: turning **internet / egocentric / generated human video** into robot-executable
+> dexterous manipulation. Video says "what to do"; physics simulation (sampling-MPC on MuJoCo Warp) recovers
+> the contact/tactile dynamics video can't see. ROCm runs that physics engine on AMD.
+
+| Repo | Domain | License | Key ROCm Libs | Status |
+|------|--------|---------|---------------|--------|
+| [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | Human-video→dexterous-hand retargeting (sampling-MPC physics optimization, arXiv'26) | 🟢 Code MIT | warp / mujoco_warp on ROCm (see `rocm-lib-compat`) + repo-side `mjwp.py` graph-capture→eager fallback | ✅ Verified (retargeting stages 1–5 full-config end-to-end, MPC converges object tracking pos=0.024m/quat~6.8°, MI300X; [ROCm fork `rocm-support`](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support), PR pending; reconstruction perception chain gated/blocked-assets) |
 
 ### Grasping
 
@@ -120,7 +149,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 
 | Repo | Domain | License | Key ROCm Libs | Status |
 |------|--------|---------|---------------|--------|
-| [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF grasp detection (GraspNet-1Billion) | ❓ No explicit license | pointnet2 (HIPified), knn shim (pure PyTorch) | ✅ Verified (325/119 grasps, 5.54s, MI300XHF) |
+| [graspnet/graspnet-baseline](https://github.com/graspnet/graspnet-baseline) | 6-DoF grasp detection (GraspNet-1Billion) | ❓ No explicit license | pointnet2 (HIPified), knn shim (pure PyTorch) | ✅ Verified (325/119 grasps, 5.54s, MI300X) |
 | [NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) | 6-DoF diffusion grasp generation | 🔴 **NVIDIA License (non-commercial)** — study only | pointnet2_ops (HIPified), torch-cluster | ✅ Verified (3 objects demo, 0.4-1.9s, MI300X) |
 | [NVlabs/GraspGenX](https://github.com/NVlabs/GraspGenX) | Cross-embodiment 6-DoF grasp generation | 🔴 Code Apache-2.0; **model weights NVIDIA Open Model License** | — (pure PyTorch; end2end cuRobo/Newton optional) | ✅ Verified (ROCm inference) |
 | [NVlabs/contact_graspnet](https://github.com/NVlabs/contact_graspnet) → [PyTorch port](https://github.com/elchun/contact_graspnet_pytorch) | 6-DoF scene-level grasping | 🔴 **NVIDIA License (non-commercial)** — study only | — (pure PyTorch PointNet2, zero migration) | ✅ Verified (3 scenes, 308-382 grasps, 6-10s, MI300X) |
@@ -137,7 +166,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 
 | Repo | Domain | License | Blocker |
 |------|--------|---------|---------|
-| [NVlabs/sage](https://github.com/NVlabs/sage) | Scene-level 3D manipulation | 🟢 Apache-2.0 (code) | Isaac Sim, cuRobo, warp-lang — deeply tied to NVIDIA ecosystem |
+| [NVlabs/sage](https://github.com/NVlabs/sage) | Scene-level 3D manipulation | 🟢 Apache-2.0 (code) | Isaac Sim + cuRobo deeply tied to NVIDIA, no ROCm path → still NVIDIA-only |
 | [Simulation-Intelligence/PAT3D](https://github.com/Simulation-Intelligence/PAT3D) | Physics-aware 3D generation | ❓ No LICENSE file | pyuipc (CUDA 13 private wheel) + CUDA 13 nightly torch — physics engine deeply tied to NVIDIA |
 
 ## Project Structure

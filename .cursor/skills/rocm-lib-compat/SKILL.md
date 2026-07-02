@@ -1,6 +1,6 @@
 ---
 name: rocm-lib-compat
-version: 2.6.1
+version: 2.7.0
 author: ZJLi2013
 description: |
   ROCm library compatibility reference for porting ML repos (3D generation,
@@ -103,6 +103,8 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | **nvdiffrast** | `GPU_ARCHS=<arch> pip install git+https://github.com/ZJLi2013/nvdiffrast.git@rocm --no-build-isolation` | **Verified on both ROCm 6.4 and 7.2**; RDNA3/4 (gfx1100/gfx1201) wave32 ✅ + CDNA3 (gfx942) wave64 half-wavefront emulation ✅; all 4 cudaraster stages + interpolate + antialias grad + texture PASS |
 | **nvdiffrec** | Same as nvdiffrast | ROCm 6.4 + 7.2; RDNA4 ✅ CDNA3 ✅ |
 | **spconv-cu\*** | `git clone -b rocm https://github.com/ZJLi2013/spconv_rocm.git && pip install -e .` | HIP kernel (indice pairs, Murmur3 hash) + C++ JIT ext + torch.mm GEMM; 28 tests PASS on MI300X; PTv3 standalone inference passes 40/40 classes ✅; ROCm 6.4+ / 7.2 |
+| **warp-lang** (NVIDIA Warp) | Source build [ROCm/warp](https://github.com/ROCm/warp)@`amd-integration` (`1.13.0+rocm.0`); **build with `--hipcc-options="-O0"`** (default `-O1/-O3` makes `warp/native/reduce.cu` hang >50 min on gfx942) | Upstream `warp-lang` (PyPI) has **no** AMD backend — this fork JIT-compiles kernels; `get_devices()` sees the AMD GPU; `wp.from_torch`/`to_torch` interop with ROCm torch OK. **gfx94x/gfx95x only — excludes RDNA4/gfx1201.** Verified ROCm 7.2.1 / MI300X ✅ |
+| **mujoco_warp** | Source build [ROCm/mujoco_warp](https://github.com/ROCm/mujoco_warp)@`amd-integration` (mujoco-warp `3.8.1`, needs `warp-lang>=1.13`) | Full physics step pipeline (kinematics/cholesky/linesearch/euler/sensor, dozens of kernels) JIT on gfx942 ✅. Set `PYTHONPATH=/work/warp:/work/mujoco_warp` and run from `/tmp` to avoid the same-name empty namespace package shadowing `put_model`. CUDA graph capture / cuBQL BVH / texture auto-skip on HIP; `graph_conditional` falls back to a Python for-loop (perf only). Verified ROCm 7.2.1 / MI300X ✅ |
 
 **Flash Attention** (tiered strategy):
 
@@ -166,6 +168,7 @@ follow-up owner if the backend itself needs work.
 | `flash_attn`, `sdpa`, `attn_fwd` | Confirm which backend is actually used: PyTorch AOTriton SDPA, FA2 Triton, AITER Triton, or AITER CK. Installing `flash-attn` does not guarantee it is used by diffusers | Attention backend issue with exact package versions and shapes |
 | `pytorch3d` raster/ops | Confirm prebuilt ROCm wheel, not source-built CPU-only binary | pytorch3d ROCm wheel / owning repo issue; not generic kernel work |
 | `torch_scatter`, `torch_sparse`, `torch_cluster` | Confirm ROCm wheels are loaded and original import names resolve correctly | If backend is correct but slow, inspect model indexing/dataflow or file against the owning library. AITER comm kernels do **not** replace tensor indexing scatter/gather |
+| `warp` kernels, `mujoco_warp` physics step | Confirm `ROCm/warp` fork is built (`wp.get_devices()` lists the AMD GPU) and not the PyPI `warp-lang` CPU fallback; check whether time is kernel JIT (first run), the `graph_conditional` Python for-loop fallback, or actual physics kernels | `ROCm/warp` or `ROCm/mujoco_warp` upstream (`amd-integration`); report `reduce.cu` compile-time bug |
 
 Rule: **make it run + verify the backend + document the slow family**. If the
 backend is correct but still slow, do not keep changing install recipes; open an
@@ -240,6 +243,26 @@ pip install -e . --no-build-isolation
 ```
 
 Verified: custom_rasterizer (Hunyuan3D ✅), o-voxel (TRELLIS.2 ✅ compile + runtime with flex_gemm).
+
+### NVIDIA Warp / mujoco_warp on ROCm
+
+`warp-lang` (PyPI) has no AMD backend, which previously blocked every physics /
+sampling-MPC repo (SIM1, do-as-i-do, sage, cubepart…). The official
+[ROCm/warp](https://github.com/ROCm/warp) + [ROCm/mujoco_warp](https://github.com/ROCm/mujoco_warp)
+forks (`amd-integration`) run on gfx94x/gfx95x. Reuse gotchas:
+
+- **`reduce.cu` pathological compile** — default `-O1/-O3` hangs `warp/native/reduce.cu`
+  >50 min on gfx942. Build with `--hipcc-options="-O0"` (only affects `reduce`
+  runtime perf; functional smoke unaffected; worth an upstream bug report).
+- **Namespace package shadowing** — `mujoco_warp` repo root and inner package share
+  a name, so `import mujoco_warp` hits an empty namespace package (no `put_model`).
+  Set `PYTHONPATH=/work/warp:/work/mujoco_warp` and run from `/tmp`.
+- **HIP feature auto-downgrade** — CUDA graph capture / cuBQL BVH / texture are
+  unsupported on HIP; mujoco_warp skips them by device capability and the solver's
+  `graph_conditional` falls back to a Python for-loop (perf only, numerically correct).
+- **Kernel cache** — `--rm` containers recompile every kernel; set
+  `WARP_CACHE_PATH=/work/.warp_cache` to persist and speed up reruns.
+- **Arch scope** — gfx94x / gfx95x only; **excludes RDNA4 (gfx1201)**.
 
 ### numpy Pin Breaks on Python 3.12
 
