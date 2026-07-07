@@ -38,6 +38,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ Verified (legacy image e2e outputs `truck` mask; compatibility fallback) |
 | [DCDmllm/InstructSAM](https://github.com/DCDmllm/InstructSAM) | Instruction-driven instance segmentation (Qwen3-VL + SAM3) | ❓ No LICENSE file; `facebook/sam3` gated weights | flash-attn (FA2 Triton), SAM3 | ✅ Verified (InstructSAM-2B + `fused_attention`, `truck.jpg` outputs 10 masks, peak 6016MB) |
 | [google-deepmind/tapnet](https://github.com/google-deepmind/tapnet) (torch port [ibaiGorordo/Tapir-Pytorch-Inference](https://github.com/ibaiGorordo/Tapir-Pytorch-Inference)) | Point trajectory tracking (TAPIR; human-video pipeline component) | 🟢 Apache-2.0 | — (pure PyTorch, public weights) | ✅ Verified (supported-smoke, torch2.9.1+rocm7.2.1, zero patch, MI300X) |
+| [Robbyant/lingbot-vision](https://github.com/Robbyant/lingbot-vision) | Self-supervised ViT backbone / dense spatial perception (DINOv2/v3 lineage; boundary-centric masked modeling, ViT-S..1.1B ViT-g) | 🟢 Apache-2.0 | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (supported-demo, zero patch; ViT-L + 1.1B ViT-g PCA dense features, MI300X) |
 
 ### Generative 3D Assets (image/text → mesh / voxel / gaussian)
 
@@ -53,6 +54,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) | Part-aware 3D mesh generation | ❓ TBD | diffusers, transformers, fpsample, warp fallback | ✅ Verified (jellyfish_car 8 parts + combined GLB, MI300X) |
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D part segmentation | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ Verified (66K verts, ~107s) |
 | [Luo-Yihao/FaithC](https://github.com/Luo-Yihao/FaithC) | 3D mesh tokenizer / Faithful Contouring (CVPR'26 Oral) | 🟢 Apache-2.0 | atom3d JIT, FaithC `_C` (hipify kernels.cu), torch_scatter shim | ✅ Verified (demo.py encode→decode, GLB output, 0.32s, MI300X) |
+| [kasothaphie/GenRecon](https://github.com/kasothaphie/GenRecon) | Multi-view 3D scene reconstruction (TRELLIS.2 family; O-Voxel representation) | 🟢 MIT (public weights: TUM kaldir + TRELLIS.2 base) | o_voxel `_C` (auto-hipify, GPU_ARCHS=gfx942), flash-attn / flex_gemm / cumesh (TRELLIS.2 recipe); nvdiffrast/nvdiffrec CUDA-only | ✅ Verified (O-Voxel core supported-demo: mesh2ovox→1.6M-voxel→ovox2mesh colored ply + GPU turntable, zero C++/CUDA changes, MI300X; full-scene e2e defer-heavy) |
 
 ### Dense Reconstruction / Multi-view Geometry / SfM (VGGT · DUSt3R family)
 
@@ -142,7 +144,18 @@ The following repos have been verified on AMD MI300X with ROCm.
 
 | Repo | Domain | License | Key ROCm Libs | Status |
 |------|--------|---------|---------------|--------|
+| [ThunderVVV/HaWoR](https://github.com/ThunderVVV/HaWoR) | Egocentric world-space 3D hand motion reconstruction (masked DROID-SLAM; CVPR'25); the **shared** hand perception/annotation primitive behind do-as-i-do / Wh0 | 🟡 Code CC BY-NC-ND 4.0; MANO weights require registration | masked DROID-SLAM (`droid_backends` hipify + altcorr atomic header), lietorch (`.template` disambiguation), Metric3D v2-L, torch-scatter-rocm, WiLoR YOLO | ✅ Verified (full pipeline e2e: WiLoR detect→HaWoR motion→masked DROID-SLAM→Metric3D→infiller, continuous world-space 3D hand trajectory, MI300X; [ROCm fork](https://github.com/ZJLi2013/HaWoR/tree/amd_support)) |
 | [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | Human-video→dexterous-hand retargeting (sampling-MPC physics optimization, arXiv'26) | 🟢 Code MIT | warp / mujoco_warp on ROCm (see `rocm-lib-compat`) + repo-side `mjwp.py` graph-capture→eager fallback | ✅ Verified (retargeting stages 1–5 end-to-end, MPC converges object tracking pos=0.024m / quat≈6.8°, MI300X; [ROCm fork](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)) |
+| [zju3dv/GVHMR](https://github.com/zju3dv/GVHMR) | Monocular-video world-grounded human motion recovery (SMPLX; SIGGRAPH Asia'24); a human-motion perception primitive for human→humanoid retargeting | 🟡 Other (custom; SMPL/SMPLX registration wall) | pytorch3d (ROCm wheel); weights via HF mirror (camenduru/GVHMR + SMPLer-X); DPVO optional (skipped) | ✅ Verified (demo.py -s e2e 312 frames: YOLOv8x→ViTPose-h→HMR2.0a→GVHMR GV transformer→SMPLX incam+global→pytorch3d render, zero source patch, MI300X) |
+
+### Embodied Soft-Body / Cloth Simulation
+
+> Two subdirections that supply physics-simulation data for embodied / deformable worlds: **soft-body / cloth FEM solving** (BS-Cloth) and a **physics-aligned data scaler** (SIM1). The former is a CPU-only solver (no GPU code, ROCm N/A, but runs natively on the AMD host); the latter's GPU acceleration goes through NVIDIA Warp, whose core layer is measured working on gfx942 via official ROCm forks.
+
+| Repo | Domain | License | Key ROCm Libs | Status |
+|------|--------|---------|---------------|--------|
+| [Simulation-Intelligence/BS-Cloth](https://github.com/Simulation-Intelligence/BS-Cloth) | B-Spline finite-element cloth simulation (ACM TOG / SIGGRAPH'26) | ❓ No LICENSE file | — (no GPU code; CPU-only solver) | ✅ Verified (supported-demo-cpu: 31-step cloth sim in 35.8s, 32 OBJ frames, native on AMD MI300X host CPU; ROCm N/A) |
+| [InternRobotics/SIM1](https://github.com/InternRobotics/SIM1) | Physics-aligned simulator / zero-shot data scaler in deformable worlds (arXiv:2604.08544) | ❓ No LICENSE file | warp / mujoco_warp on ROCm (`ROCm/warp@amd-integration` 1.13.0+rocm.0 + `ROCm/mujoco_warp@amd-integration` 3.8.1) | 🔶 partial-rocm (warp/mujoco_warp core layer measured L1+L2 PASS on gfx942; bundled newton + cloth solvers (VBD/Style3D) unverified) |
 
 ### Grasping
 
@@ -163,6 +176,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | Video → 3D reconstruction | 🟢 MIT | 🔶 Stage 0-1b PASS | tinycudann split_k fix |
 | [AIGeeksGroup/Lite3R](https://github.com/AIGeeksGroup/Lite3R) | Lightweight 3D reconstruction compression (FP8 QAT) | ❓ No LICENSE file | 🔶 SDPA/FP8/_scaled_mm OK | torchao >=0.17 requires PyTorch >=2.11 |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D scene understanding (VLA) | 🟢 Apache-2.0 | 🔶 Env ready | Needs ScanNet dataset |
+| [mschneider456/worldmesh](https://github.com/mschneider456/worldmesh) | Mesh-conditioned diffusion navigable multi-room scene (ECCV'26) | 🟡 Other (custom) | 🔶 ROCm slice verified (procedural layout + Apple Depth Pro depth, MI300X) | tiny-cuda-nn / kaolin / nvdiffrast (NV-only) + human-in-loop Gradio masking + gated FLUX.2/sam3 |
 
 ### ❌ NVIDIA-only (cannot migrate)
 
@@ -170,6 +184,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 |------|--------|---------|---------|
 | [NVlabs/sage](https://github.com/NVlabs/sage) | Scene-level 3D manipulation | 🟢 Apache-2.0 (code) | Isaac Sim + cuRobo deeply tied to NVIDIA, no ROCm path → still NVIDIA-only |
 | [Simulation-Intelligence/PAT3D](https://github.com/Simulation-Intelligence/PAT3D) | Physics-aware 3D generation | ❓ No LICENSE file | pyuipc (CUDA 13 private wheel) + CUDA 13 nightly torch — physics engine deeply tied to NVIDIA |
+| [ShirleyMaxx/REST3D](https://github.com/ShirleyMaxx/REST3D) | Single-image → physically-stable interactive 3D scene (CMU) | 🟡 CC BY-NC 4.0 | Core stage-3 stabilize+replay built entirely on NVIDIA Isaac Gym (closed-source CUDA/PhysX, no AMD backend, deprecated); perception stages need gated sam3 / sam-3d-objects + Gemini API |
 
 ## Project Structure
 

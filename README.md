@@ -40,6 +40,7 @@
 | [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ 已验证（legacy image e2e 输出 `truck` mask；作为兼容后备） |
 | [DCDmllm/InstructSAM](https://github.com/DCDmllm/InstructSAM) | Instruction-driven instance segmentation (Qwen3-VL + SAM3) | ❓ 无 LICENSE 文件；`facebook/sam3` gated weights | flash-attn (FA2 Triton), SAM3 | ✅ 已验证（InstructSAM-2B + `fused_attention`，`truck.jpg` 输出 10 masks，peak 6016MB） |
 | [google-deepmind/tapnet](https://github.com/google-deepmind/tapnet) (torch port [ibaiGorordo/Tapir-Pytorch-Inference](https://github.com/ibaiGorordo/Tapir-Pytorch-Inference)) | 点轨迹跟踪 (TAPIR; 人类视频 pipeline 组件) | 🟢 Apache-2.0 | — (纯 PyTorch, 公开权重) | ✅ 已验证（supported-smoke, torch2.9.1+rocm7.2.1, 零 patch, MI300X） |
+| [Robbyant/lingbot-vision](https://github.com/Robbyant/lingbot-vision) | 自监督 ViT backbone / 稠密空间感知 (DINOv2/v3 lineage; boundary-centric 掩码建模, ViT-S..1.1B ViT-g) | 🟢 Apache-2.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（supported-demo, 零改动；ViT-L + 1.1B ViT-g PCA 稠密特征, MI300X） |
 
 ### 生成式 3D 资产 (image/text → mesh / voxel / gaussian)
 
@@ -55,6 +56,7 @@
 | [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) | Part-aware 3D mesh generation | ❓ 待确认 | diffusers, transformers, fpsample, warp fallback | ✅ 已验证（jellyfish_car 8 parts + combined GLB, MI300X） |
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D 部件分割 | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ 已验证（66K verts, ~107s） |
 | [Luo-Yihao/FaithC](https://github.com/Luo-Yihao/FaithC) | 3D mesh tokenizer / Faithful Contouring (CVPR'26 Oral) | 🟢 Apache-2.0 | atom3d JIT, FaithC `_C` (hipify kernels.cu), torch_scatter shim | ✅ 已验证（demo.py encode→decode, GLB 输出, 0.32s, MI300X） |
+| [kasothaphie/GenRecon](https://github.com/kasothaphie/GenRecon) | 多视图 3D 场景重建 (TRELLIS.2 族; O-Voxel 表示) | 🟢 MIT（权重公开：TUM kaldir + TRELLIS.2 base） | o_voxel `_C` (auto-hipify, GPU_ARCHS=gfx942), flash-attn / flex_gemm / cumesh (TRELLIS.2 recipe); nvdiffrast/nvdiffrec 仅 CUDA | ✅ 已验证（O-Voxel core supported-demo：mesh2ovox→1.6M-voxel→ovox2mesh 彩色 ply + GPU turntable, 零 C++/CUDA 改动, MI300X；全场景 e2e defer-heavy） |
 
 ### 稠密重建 / 多视图几何 / SfM (VGGT · DUSt3R 族)
 
@@ -140,7 +142,20 @@
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
+| [ThunderVVV/HaWoR](https://github.com/ThunderVVV/HaWoR) | Egocentric 世界坐标 3D 手部运动重建 (masked DROID-SLAM; CVPR'25)；do-as-i-do / Wh0 的手部感知/标注**共同原语** | 🟡 代码 CC BY-NC-ND 4.0；MANO 权重注册墙 | masked DROID-SLAM (`droid_backends` hipify + altcorr 原子头), lietorch (`.template` 消歧), Metric3D v2-L, torch-scatter-rocm, WiLoR YOLO | ✅ 已验证（整条 pipeline e2e：WiLoR 检测→HaWoR 运动估计→masked DROID-SLAM→Metric3D→infiller，世界坐标连续 3D 手轨产出, MI300X；[ROCm fork](https://github.com/ZJLi2013/HaWoR/tree/amd_support)） |
 | [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | 人类视频→灵巧手 重定向（采样式 MPC 物理优化, arXiv'26） | 🟢 代码 MIT | warp / mujoco_warp on ROCm（见 `rocm-lib-compat`）+ repo 侧 `mjwp.py` graph-capture→eager 回退 | ✅ 已验证（retargeting 阶段 1–5 端到端，MPC 收敛 object tracking pos=0.024m / quat≈6.8°, MI300X；[ROCm fork](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)） |
+| [zju3dv/GVHMR](https://github.com/zju3dv/GVHMR) | 单目视频世界坐标人体运动恢复 (SMPLX; SIGGRAPH Asia'24)；人类示范→人形重定向的运动感知原语 | 🟡 Other (自定义; SMPL/SMPLX 注册墙) | pytorch3d (ROCm wheel); 权重走 HF mirror (camenduru/GVHMR + SMPLer-X); DPVO 可选(跳过) | ✅ 已验证（demo.py -s 端到端 312 帧：YOLOv8x→ViTPose-h→HMR2.0a→GVHMR GV transformer→SMPLX incam+global→pytorch3d 渲染, 零源码 patch, MI300X） |
+
+### 具身柔体仿真 (Embodied Soft-Body / Cloth Simulation)
+
+> 为具身 / 可变形世界提供物理仿真数据的两个子方向：**柔体 / 布料 FEM 求解**（BS-Cloth）与
+> **physics-aligned 数据放大器**（SIM1）。前者是 CPU-only 求解器（无 GPU 代码，ROCm 不适用，但可在 AMD host 原生跑）；
+> 后者的 GPU 加速走 NVIDIA Warp，核心层已在 gfx942 用官方 ROCm fork 实测跑通。
+
+| Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
+|------|------|------|-------------|------|
+| [Simulation-Intelligence/BS-Cloth](https://github.com/Simulation-Intelligence/BS-Cloth) | B-Spline 有限元布料仿真 (ACM TOG / SIGGRAPH'26) | ❓ 无 LICENSE 文件 | — (无 GPU 代码; CPU-only 求解器) | ✅ 已验证（supported-demo-cpu：31 步布料仿真 35.8s，32 帧 OBJ 序列，AMD MI300X host CPU 原生跑；ROCm 不适用） |
+| [InternRobotics/SIM1](https://github.com/InternRobotics/SIM1) | Physics-aligned 仿真器 / 可变形世界零样本数据放大 (arXiv:2604.08544) | ❓ 无 LICENSE 文件 | warp / mujoco_warp on ROCm（`ROCm/warp@amd-integration` 1.13.0+rocm.0 + `ROCm/mujoco_warp@amd-integration` 3.8.1） | 🔶 partial-rocm（warp/mujoco_warp 核心层 gfx942 实测 L1+L2 PASS；bundled newton + 布料 solver(VBD/Style3D) 未验证） |
 
 ### 抓取 (Grasping)
 
@@ -161,6 +176,7 @@
 | [lukasHoel/video_to_world](https://github.com/lukasHoel/video_to_world) | 视频→3D 重建 | 🟢 MIT | 🔶 Stage 0-1b PASS | tinycudann split_k fix |
 | [AIGeeksGroup/Lite3R](https://github.com/AIGeeksGroup/Lite3R) | 轻量 3D 重建压缩 (FP8 QAT) | ❓ 无 LICENSE 文件 | 🔶 SDPA/FP8/_scaled_mm OK | torchao >=0.17 需 PyTorch >=2.11 |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D 场景理解 (VLA) | 🟢 Apache-2.0 | 🔶 环境就绪 | 需 ScanNet 数据集 |
+| [mschneider456/worldmesh](https://github.com/mschneider456/worldmesh) | Mesh 条件扩散可导航多房间场景 (ECCV'26) | 🟡 Other (自定义) | 🔶 ROCm 切片已验证（procedural layout + Apple Depth Pro 深度, MI300X） | tiny-cuda-nn / kaolin / nvdiffrast (NV-only) + 人在环 Gradio 掩码 + gated FLUX.2/sam3 |
 
 ### ❌ NVIDIA-only (不可迁移)
 
@@ -168,6 +184,7 @@
 |------|------|------|---------|
 | [NVlabs/sage](https://github.com/NVlabs/sage) | 场景级 3D 操控 | 🟢 Apache-2.0 (代码) | Isaac Sim + cuRobo 深度绑定 NVIDIA，无 ROCm 路径 → 整体仍 NVIDIA-only |
 | [Simulation-Intelligence/PAT3D](https://github.com/Simulation-Intelligence/PAT3D) | 物理感知 3D 生成 | ❓ 无 LICENSE 文件 | pyuipc (CUDA 13 私有 wheel) + CUDA 13 nightly torch — 物理引擎深度绑定 NVIDIA |
+| [ShirleyMaxx/REST3D](https://github.com/ShirleyMaxx/REST3D) | 单图→物理稳定交互 3D 场景 (CMU) | 🟡 CC BY-NC 4.0 | 核心 stage3 稳定+replay 全建于 NVIDIA Isaac Gym (闭源 CUDA/PhysX, 无 AMD 后端, 已弃用)；感知 stage 依赖 gated sam3 / sam-3d-objects + Gemini API |
 
 ## 项目结构
 
