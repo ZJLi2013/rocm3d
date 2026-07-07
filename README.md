@@ -41,6 +41,7 @@
 | [DCDmllm/InstructSAM](https://github.com/DCDmllm/InstructSAM) | Instruction-driven instance segmentation (Qwen3-VL + SAM3) | ❓ 无 LICENSE 文件；`facebook/sam3` gated weights | flash-attn (FA2 Triton), SAM3 | ✅ 已验证（InstructSAM-2B + `fused_attention`，`truck.jpg` 输出 10 masks，peak 6016MB） |
 | [google-deepmind/tapnet](https://github.com/google-deepmind/tapnet) (torch port [ibaiGorordo/Tapir-Pytorch-Inference](https://github.com/ibaiGorordo/Tapir-Pytorch-Inference)) | 点轨迹跟踪 (TAPIR; 人类视频 pipeline 组件) | 🟢 Apache-2.0 | — (纯 PyTorch, 公开权重) | ✅ 已验证（supported-smoke, torch2.9.1+rocm7.2.1, 零 patch, MI300X） |
 | [Robbyant/lingbot-vision](https://github.com/Robbyant/lingbot-vision) | 自监督 ViT backbone / 稠密空间感知 (DINOv2/v3 lineage; boundary-centric 掩码建模, ViT-S..1.1B ViT-g) | 🟢 Apache-2.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（supported-demo, 零改动；ViT-L + 1.1B ViT-g PCA 稠密特征, MI300X） |
+| [zju3dv/GVHMR](https://github.com/zju3dv/GVHMR) | 单目视频世界坐标全身人体运动恢复 (SMPLX; SIGGRAPH Asia'24) | 🟡 Other (自定义; SMPL/SMPLX 注册墙) | pytorch3d (ROCm wheel); 权重走 HF mirror (camenduru/GVHMR + SMPLer-X); DPVO 可选(跳过) | ✅ 已验证（demo.py -s 端到端 312 帧：YOLOv8x→ViTPose-h→HMR2.0a→GVHMR GV transformer→SMPLX incam+global→pytorch3d 渲染, 零源码 patch, MI300X） |
 
 ### 生成式 3D 资产 (image/text → mesh / voxel / gaussian)
 
@@ -144,7 +145,6 @@
 |------|------|------|-------------|------|
 | [ThunderVVV/HaWoR](https://github.com/ThunderVVV/HaWoR) | Egocentric 世界坐标 3D 手部运动重建 (masked DROID-SLAM; CVPR'25)；do-as-i-do / Wh0 的手部感知/标注**共同原语** | 🟡 代码 CC BY-NC-ND 4.0；MANO 权重注册墙 | masked DROID-SLAM (`droid_backends` hipify + altcorr 原子头), lietorch (`.template` 消歧), Metric3D v2-L, torch-scatter-rocm, WiLoR YOLO | ✅ 已验证（整条 pipeline e2e：WiLoR 检测→HaWoR 运动估计→masked DROID-SLAM→Metric3D→infiller，世界坐标连续 3D 手轨产出, MI300X；[ROCm fork](https://github.com/ZJLi2013/HaWoR/tree/amd_support)） |
 | [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | 人类视频→灵巧手 重定向（采样式 MPC 物理优化, arXiv'26） | 🟢 代码 MIT | warp / mujoco_warp on ROCm（见 `rocm-lib-compat`）+ repo 侧 `mjwp.py` graph-capture→eager 回退 | ✅ 已验证（retargeting 阶段 1–5 端到端，MPC 收敛 object tracking pos=0.024m / quat≈6.8°, MI300X；[ROCm fork](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)） |
-| [zju3dv/GVHMR](https://github.com/zju3dv/GVHMR) | 单目视频世界坐标人体运动恢复 (SMPLX; SIGGRAPH Asia'24)；人类示范→人形重定向的运动感知原语 | 🟡 Other (自定义; SMPL/SMPLX 注册墙) | pytorch3d (ROCm wheel); 权重走 HF mirror (camenduru/GVHMR + SMPLer-X); DPVO 可选(跳过) | ✅ 已验证（demo.py -s 端到端 312 帧：YOLOv8x→ViTPose-h→HMR2.0a→GVHMR GV transformer→SMPLX incam+global→pytorch3d 渲染, 零源码 patch, MI300X） |
 
 ### 具身柔体仿真 (Embodied Soft-Body / Cloth Simulation)
 
