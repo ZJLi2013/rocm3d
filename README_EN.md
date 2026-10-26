@@ -125,6 +125,8 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | Video diffusion + 3D geometry (ICLR 2026) | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 demo GIFs, 16f×256², ~69s, MI300X) |
 | [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D video generation (Wan2.1 14B + LoRA) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (384p 49 frames, ~44min, MI300X) |
 | [mlzxy/rla-wm](https://github.com/mlzxy/rla-wm) | Visual world model + robot learning (arXiv'26) | ❓ No LICENSE file | amd_gsplat, nvdiffrast (ROCm fork), torch-scatter | ✅ Verified (521M model load, 2.08GB, MI300X) |
+| [NVlabs/Sana](https://github.com/NVlabs/Sana) | Efficient T2I / text-to-video (SANA 1.5, SANA-Video) | 🟢 Apache-2.0 (code) | xformers ROCm wheel, flash-attn (FA2 Triton) | ✅ Verified (SANA 1.5 1024px 20 steps ~2.75s; SANA-Video 480p 33 frames ~160s, bottleneck in VAE Conv3D, MI300X; SANA-WM weights not released) |
+| [yifan123/flow_grpo](https://github.com/yifan123/flow_grpo) | Online RL for flow-matching T2I (Flow-GRPO, SD3.5-M) | 🟢 MIT | — (pure PyTorch/diffusers, AOTriton SDPA) | ✅ Verified (zero source patch; SDE log-prob + SD3.5-M base vs RL LoRA images + single-GPU GRPO training loop with rising reward, MI300X) |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | Monocular 4D geometry + motion | 🟡 Academic Only (custom; no commercial; EU restricted) | xformers, pytorch3d | 🔶 Likely |
 
 ### VLA / Embodied AI
@@ -136,6 +138,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [JIAjindou/A2A_Flow_Matching](https://github.com/JIAjindou/A2A_Flow_Matching) | Action-to-Action Flow Matching (RSS'26) | ❓ No LICENSE file | — (pure PyTorch, torchcfm) | ✅ Verified (GPU smoke test PASS, MI300X) |
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B inference | 🟢 Apache-2.0 | — (pure PyTorch) | 🔶 Likely |
 | [microsoft/VITRA](https://github.com/microsoft/VITRA) | Egocentric-hand VLA (PaliGemma2-3B + DiT action head; human-video→action) | 🟢 Code MIT; `VITRA-VLA-3B` free MIT, `paligemma2-3b` base gated (accepted) | — (pure PyTorch/transformers==4.47.1, AOTriton SDPA) | ✅ Verified (supported-smoke, full inference action `[1,16,192]`, zero source patch, MI300X) |
+| [Renforce-Dynamics/MuGS](https://github.com/Renforce-Dynamics/MuGS) | MuJoCo physics + 3DGS hybrid rendering (photorealistic VLA simulation) | 🟢 MIT | **amd_gsplat**, mujoco (EGL) | ✅ Verified (GaussianSensor: MuJoCo foreground + 3DGS background + segmentation alpha compositing, zero source patch, MI300X) |
 
 ### Dexterous Manipulation / Human-to-Robot
 
@@ -147,6 +150,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 |------|--------|---------|---------------|--------|
 | [ThunderVVV/HaWoR](https://github.com/ThunderVVV/HaWoR) | Egocentric world-space 3D hand motion reconstruction (masked DROID-SLAM; CVPR'25); the **shared** hand perception/annotation primitive behind do-as-i-do / Wh0 | 🟡 Code CC BY-NC-ND 4.0; MANO weights require registration | masked DROID-SLAM (`droid_backends` hipify + altcorr atomic header), lietorch (`.template` disambiguation), Metric3D v2-L, torch-scatter-rocm, WiLoR YOLO | ✅ Verified (full pipeline e2e: WiLoR detect→HaWoR motion→masked DROID-SLAM→Metric3D→infiller, continuous world-space 3D hand trajectory, MI300X; [ROCm fork](https://github.com/ZJLi2013/HaWoR/tree/amd_support)) |
 | [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | Human-video→dexterous-hand retargeting (sampling-MPC physics optimization, arXiv'26) | 🟢 Code MIT | warp / mujoco_warp on ROCm (see `rocm-lib-compat`) + repo-side `mjwp.py` graph-capture→eager fallback | ✅ Verified (retargeting stages 1–5 end-to-end, MPC converges object tracking pos=0.024m / quat≈6.8°, MI300X; [ROCm fork](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)) |
+| [facebookresearch/project_superdex](https://github.com/facebookresearch/project_superdex) | Unified dexterous-manipulation simulation platform (Mochi contact-first physics + Gym RL interface) | 🟢 Apache-2.0 | — (no GPU code; CPU physics + Mesa software rendering) | ✅ Verified (supported-demo-cpu: 26/26 examples PASS, 6 videos at 960×540, native on AMD MI300X host CPU; ROCm acceleration awaits an upstream GPU backend) |
 
 ### Embodied Soft-Body / Cloth Simulation
 
@@ -177,6 +181,8 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [AIGeeksGroup/Lite3R](https://github.com/AIGeeksGroup/Lite3R) | Lightweight 3D reconstruction compression (FP8 QAT) | ❓ No LICENSE file | 🔶 SDPA/FP8/_scaled_mm OK | torchao >=0.17 requires PyTorch >=2.11 |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D scene understanding (VLA) | 🟢 Apache-2.0 | 🔶 Env ready | Needs ScanNet dataset |
 | [mschneider456/worldmesh](https://github.com/mschneider456/worldmesh) | Mesh-conditioned diffusion navigable multi-room scene (ECCV'26) | 🟡 Other (custom) | 🔶 ROCm slice verified (procedural layout + Apple Depth Pro depth, MI300X) | tiny-cuda-nn / kaolin / nvdiffrast (NV-only) + human-in-loop Gradio masking + gated FLUX.2/sam3 |
+| [nepfaff/scenesmith](https://github.com/nepfaff/scenesmith) | Agent-driven simulation-ready 3D scene generation | 🟢 MIT | 🔶 16/18 deps + `import scenesmith` OK (torch 2.8, ROCm 6.4) | bpy / mathutils ship only with Blender, not pip-installable |
+| [Genesis-Embodied-AI/RoboGen](https://github.com/Genesis-Embodied-AI/RoboGen) | Generative robot task / skill learning | 🟢 Apache-2.0 | 🔶 Core deps + PyBullet sim OK (PyBullet runs on CPU) | OMPL prebuilt wheel URL 404, motion planning unverified |
 
 ### ❌ NVIDIA-only (cannot migrate)
 

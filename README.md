@@ -127,6 +127,8 @@
 | [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | 视频扩散 + 3D 几何 (ICLR 2026) | 🟢 MIT | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（3 demo GIFs, 16f×256², ~69s, MI300X） |
 | [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D 视频生成 (Wan2.1 14B + LoRA) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（384p 49 frames, ~44min, MI300X） |
 | [mlzxy/rla-wm](https://github.com/mlzxy/rla-wm) | 视觉世界模型 + 机器人学习 (arXiv'26) | ❓ 无 LICENSE 文件 | amd_gsplat, nvdiffrast (ROCm fork), torch-scatter | ✅ 已验证（521M model load, 2.08GB, MI300X） |
+| [NVlabs/Sana](https://github.com/NVlabs/Sana) | 高效 T2I / 文生视频 (SANA 1.5, SANA-Video) | 🟢 Apache-2.0 (代码) | xformers ROCm wheel, flash-attn (FA2 Triton) | ✅ 已验证（SANA 1.5 1024px 20 steps ~2.75s；SANA-Video 480p 33 帧 ~160s，瓶颈在 VAE Conv3D, MI300X；SANA-WM 权重未公开） |
+| [yifan123/flow_grpo](https://github.com/yifan123/flow_grpo) | Flow-matching T2I 在线 RL (Flow-GRPO, SD3.5-M) | 🟢 MIT | — (纯 PyTorch/diffusers, AOTriton SDPA) | ✅ 已验证（零源码 patch；SDE log-prob + SD3.5-M base vs RL LoRA 出图 + 单卡 GRPO 训练循环 reward 上升, MI300X） |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | 单目 4D 几何+运动重建 | 🟡 Academic Only (自定义; 禁止商用; EU 限制) | xformers, pytorch3d | 🔶 大概率 |
 
 ### VLA / 具身智能
@@ -138,6 +140,7 @@
 | [JIAjindou/A2A_Flow_Matching](https://github.com/JIAjindou/A2A_Flow_Matching) | Action-to-Action Flow Matching (RSS'26) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, torchcfm) | ✅ 已验证（GPU smoke test PASS, MI300X） |
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B 推理 | 🟢 Apache-2.0 | — (纯 PyTorch) | 🔶 大概率 |
 | [microsoft/VITRA](https://github.com/microsoft/VITRA) | Egocentric-hand VLA (PaliGemma2-3B + DiT 动作头; 人类视频→动作) | 🟢 代码 MIT；`VITRA-VLA-3B` free MIT，`paligemma2-3b` base gated（已接受） | — (纯 PyTorch/transformers==4.47.1, AOTriton SDPA) | ✅ 已验证（supported-smoke，完整推理 action `[1,16,192]`，零源码 patch, MI300X） |
+| [Renforce-Dynamics/MuGS](https://github.com/Renforce-Dynamics/MuGS) | MuJoCo 物理 + 3DGS 混合渲染（照片级 VLA 仿真） | 🟢 MIT | **amd_gsplat**, mujoco (EGL) | ✅ 已验证（GaussianSensor：MuJoCo 前景 + 3DGS 背景 + 分割 alpha 合成，零源码 patch, MI300X） |
 
 ### 灵巧操作 / 人类示范重定向 (Dexterous Manipulation / Human-to-Humanoid)
 
@@ -145,6 +148,7 @@
 |------|------|------|-------------|------|
 | [ThunderVVV/HaWoR](https://github.com/ThunderVVV/HaWoR) | Egocentric 世界坐标 3D 手部运动重建 (masked DROID-SLAM; CVPR'25)；do-as-i-do / Wh0 的手部感知/标注**共同原语** | 🟡 代码 CC BY-NC-ND 4.0；MANO 权重注册墙 | masked DROID-SLAM (`droid_backends` hipify + altcorr 原子头), lietorch (`.template` 消歧), Metric3D v2-L, torch-scatter-rocm, WiLoR YOLO | ✅ 已验证（整条 pipeline e2e：WiLoR 检测→HaWoR 运动估计→masked DROID-SLAM→Metric3D→infiller，世界坐标连续 3D 手轨产出, MI300X；[ROCm fork](https://github.com/ZJLi2013/HaWoR/tree/amd_support)） |
 | [malik-group/do-as-i-do](https://github.com/malik-group/do-as-i-do) | 人类视频→灵巧手 重定向（采样式 MPC 物理优化, arXiv'26） | 🟢 代码 MIT | warp / mujoco_warp on ROCm（见 `rocm-lib-compat`）+ repo 侧 `mjwp.py` graph-capture→eager 回退 | ✅ 已验证（retargeting 阶段 1–5 端到端，MPC 收敛 object tracking pos=0.024m / quat≈6.8°, MI300X；[ROCm fork](https://github.com/ZJLi2013/do-as-i-do/tree/rocm-support)） |
+| [facebookresearch/project_superdex](https://github.com/facebookresearch/project_superdex) | 灵巧操作统一仿真平台（Mochi contact-first 物理 + Gym RL 接口） | 🟢 Apache-2.0 | — (无 GPU 代码; CPU 物理 + Mesa 软渲染) | ✅ 已验证（supported-demo-cpu：26/26 example PASS，6 段 960×540 视频，AMD MI300X host CPU 原生跑；ROCm 加速待上游 GPU 后端） |
 
 ### 具身柔体仿真 (Embodied Soft-Body / Cloth Simulation)
 
@@ -177,6 +181,8 @@
 | [AIGeeksGroup/Lite3R](https://github.com/AIGeeksGroup/Lite3R) | 轻量 3D 重建压缩 (FP8 QAT) | ❓ 无 LICENSE 文件 | 🔶 SDPA/FP8/_scaled_mm OK | torchao >=0.17 需 PyTorch >=2.11 |
 | [H-EmbodVis/VEGA-3D](https://github.com/H-EmbodVis/VEGA-3D) | 3D 场景理解 (VLA) | 🟢 Apache-2.0 | 🔶 环境就绪 | 需 ScanNet 数据集 |
 | [mschneider456/worldmesh](https://github.com/mschneider456/worldmesh) | Mesh 条件扩散可导航多房间场景 (ECCV'26) | 🟡 Other (自定义) | 🔶 ROCm 切片已验证（procedural layout + Apple Depth Pro 深度, MI300X） | tiny-cuda-nn / kaolin / nvdiffrast (NV-only) + 人在环 Gradio 掩码 + gated FLUX.2/sam3 |
+| [nepfaff/scenesmith](https://github.com/nepfaff/scenesmith) | Agent 驱动的仿真就绪 3D 场景生成 | 🟢 MIT | 🔶 16/18 依赖 + `import scenesmith` OK（torch 2.8 ROCm 6.4） | bpy / mathutils 仅随 Blender 提供，pip 装不上 |
+| [Genesis-Embodied-AI/RoboGen](https://github.com/Genesis-Embodied-AI/RoboGen) | 生成式机器人任务 / 技能学习 | 🟢 Apache-2.0 | 🔶 核心依赖 + PyBullet 仿真 OK（PyBullet 走 CPU） | OMPL 预编译 wheel 链接 404，运动规划未验证 |
 
 ### ❌ NVIDIA-only (不可迁移)
 
