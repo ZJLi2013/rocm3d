@@ -121,12 +121,14 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [ABU121111/DreamWorld](https://github.com/ABU121111/DreamWorld) | Video generation (Wan2.1 + VGGT) | ❓ No LICENSE file | — | ✅ Verified (2 videos, ~39min) |
 | [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) | Image→3D world (Wan2.1 + DA3 + GS) | 🔴 Code: Apache-2.0; **Weights: NVIDIA License (non-commercial, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ Verified (zoom-in/out video, 14B, ~2h, MI300X) |
 | [Sim2Reason/Sim2Reason](https://github.com/Sim2Reason/Sim2Reason) | LLM physics reasoning (VERL + Qwen2.5) | ❓ No LICENSE file; verl_v4 subtree Apache-2.0 | vLLM→HF generate, liger-kernel | ✅ Verified (JEEBench 123q, ~100min, MI300X) |
+| [Tencent-Hunyuan/Hy-Memory](https://github.com/Tencent-Hunyuan/Hy-Memory) | Long-term agent memory (Hy-Memory-30B-A3B extraction + SDK retrieval) | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm | ✅ Verified (zero source patch; single-GPU BF16 serving ~112 tok/s, SDK memory write and retrieval end to end, MI300X) |
 | [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | Arbitrary-view 3D reconstruction (Wan2.1 14B + DiffSynth) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (chair video 5.0MB, ~7.4min, MI300X) |
 | [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | Video diffusion + 3D geometry (ICLR 2026) | 🟢 MIT | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (3 demo GIFs, 16f×256², ~69s, MI300X) |
 | [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D video generation (Wan2.1 14B + LoRA) | ❓ No LICENSE file | — (pure PyTorch, AOTriton SDPA) | ✅ Verified (384p 49 frames, ~44min, MI300X) |
 | [mlzxy/rla-wm](https://github.com/mlzxy/rla-wm) | Visual world model + robot learning (arXiv'26) | ❓ No LICENSE file | amd_gsplat, nvdiffrast (ROCm fork), torch-scatter | ✅ Verified (521M model load, 2.08GB, MI300X) |
 | [NVlabs/Sana](https://github.com/NVlabs/Sana) | Efficient T2I / text-to-video (SANA 1.5, SANA-Video) | 🟢 Apache-2.0 (code) | xformers ROCm wheel, flash-attn (FA2 Triton) | ✅ Verified (SANA 1.5 1024px 20 steps ~2.75s; SANA-Video 480p 33 frames ~160s, bottleneck in VAE Conv3D, MI300X; SANA-WM weights not released) |
 | [yifan123/flow_grpo](https://github.com/yifan123/flow_grpo) | Online RL for flow-matching T2I (Flow-GRPO, SD3.5-M) | 🟢 MIT | — (pure PyTorch/diffusers, AOTriton SDPA) | ✅ Verified (zero source patch; SDE log-prob + SD3.5-M base vs RL LoRA images + single-GPU GRPO training loop with rising reward, MI300X) |
+| [Robert-gyj/Ctrl-World](https://github.com/Robert-gyj/Ctrl-World) | Action-conditioned robot world model (SVD backbone, DROID multi-view trajectory replay) | 🟢 MIT | — (pure PyTorch/diffusers; ffmpeg added to image) | ✅ Verified (zero model-code change; three-view rollout video matches the recorded trajectory, ~7.7s per interaction step, MI300X) |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | Monocular 4D geometry + motion | 🟡 Academic Only (custom; no commercial; EU restricted) | xformers, pytorch3d | 🔶 Likely |
 
 ### VLA / Embodied AI
@@ -139,6 +141,7 @@ The following repos have been verified on AMD MI300X with ROCm.
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B inference | 🟢 Apache-2.0 | — (pure PyTorch) | 🔶 Likely |
 | [microsoft/VITRA](https://github.com/microsoft/VITRA) | Egocentric-hand VLA (PaliGemma2-3B + DiT action head; human-video→action) | 🟢 Code MIT; `VITRA-VLA-3B` free MIT, `paligemma2-3b` base gated (accepted) | — (pure PyTorch/transformers==4.47.1, AOTriton SDPA) | ✅ Verified (supported-smoke, full inference action `[1,16,192]`, zero source patch, MI300X) |
 | [Renforce-Dynamics/MuGS](https://github.com/Renforce-Dynamics/MuGS) | MuJoCo physics + 3DGS hybrid rendering (photorealistic VLA simulation) | 🟢 MIT | **amd_gsplat**, mujoco (EGL) | ✅ Verified (GaussianSensor: MuJoCo foreground + 3DGS background + segmentation alpha compositing, zero source patch, MI300X) |
+| [OpenSenseNova/SenseNova-RoboRSI](https://github.com/OpenSenseNova/SenseNova-RoboRSI) | Embodied VLM (RoboRSI-27B-Preview: scene understanding + manipulation planning) | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (TP=2, bf16) | ✅ Verified (zero source patch; image + instruction gives correct object list and a 5-step grasp plan in ~33s, MI300X; simulator benchmark images not tested) |
 
 ### Dexterous Manipulation / Human-to-Robot
 

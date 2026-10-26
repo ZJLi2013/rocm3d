@@ -123,12 +123,14 @@
 | [ABU121111/DreamWorld](https://github.com/ABU121111/DreamWorld) | 视频生成 (Wan2.1 + VGGT) | ❓ 无 LICENSE 文件 | — | ✅ 已验证（2 videos, ~39min） |
 | [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) | 图像→3D 世界 (Wan2.1 + DA3 + GS) | 🔴 代码 Apache-2.0; **模型权重 NVIDIA License (非商用, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ 已验证（zoom-in/out 视频, 14B, ~2h, MI300X） |
 | [Sim2Reason/Sim2Reason](https://github.com/Sim2Reason/Sim2Reason) | LLM 物理推理 (VERL + Qwen2.5) | ❓ 无 LICENSE 文件; verl_v4 子目录 Apache-2.0 | vLLM→HF generate, liger-kernel | ✅ 已验证（JEEBench 123q, ~100min, MI300X） |
+| [Tencent-Hunyuan/Hy-Memory](https://github.com/Tencent-Hunyuan/Hy-Memory) | Agent 长期记忆（Hy-Memory-30B-A3B 抽取 + SDK 检索） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm | ✅ 已验证（零源码 patch；单卡 BF16 服务 ~112 tok/s，SDK 记忆写入与检索端到端, MI300X） |
 | [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | 任意视角 3D 重建 (Wan2.1 14B + DiffSynth) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（chair 视频 5.0MB, ~7.4min, MI300X） |
 | [CIntellifusion/GeometryForcing](https://github.com/CIntellifusion/GeometryForcing) | 视频扩散 + 3D 几何 (ICLR 2026) | 🟢 MIT | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（3 demo GIFs, 16f×256², ~69s, MI300X） |
 | [Eyeline-Labs/Vista4D](https://github.com/Eyeline-Labs/Vista4D) | 4D 视频生成 (Wan2.1 14B + LoRA) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（384p 49 frames, ~44min, MI300X） |
 | [mlzxy/rla-wm](https://github.com/mlzxy/rla-wm) | 视觉世界模型 + 机器人学习 (arXiv'26) | ❓ 无 LICENSE 文件 | amd_gsplat, nvdiffrast (ROCm fork), torch-scatter | ✅ 已验证（521M model load, 2.08GB, MI300X） |
 | [NVlabs/Sana](https://github.com/NVlabs/Sana) | 高效 T2I / 文生视频 (SANA 1.5, SANA-Video) | 🟢 Apache-2.0 (代码) | xformers ROCm wheel, flash-attn (FA2 Triton) | ✅ 已验证（SANA 1.5 1024px 20 steps ~2.75s；SANA-Video 480p 33 帧 ~160s，瓶颈在 VAE Conv3D, MI300X；SANA-WM 权重未公开） |
 | [yifan123/flow_grpo](https://github.com/yifan123/flow_grpo) | Flow-matching T2I 在线 RL (Flow-GRPO, SD3.5-M) | 🟢 MIT | — (纯 PyTorch/diffusers, AOTriton SDPA) | ✅ 已验证（零源码 patch；SDE log-prob + SD3.5-M base vs RL LoRA 出图 + 单卡 GRPO 训练循环 reward 上升, MI300X） |
+| [Robert-gyj/Ctrl-World](https://github.com/Robert-gyj/Ctrl-World) | 动作条件机器人世界模型（SVD 骨干，DROID 多视角轨迹回放） | 🟢 MIT | — (纯 PyTorch/diffusers；镜像补 ffmpeg) | ✅ 已验证（零模型代码改动；三视角 rollout 视频与真实轨迹一致，每交互步 ~7.7s, MI300X） |
 | [TencentARC/MotionCrafter](https://github.com/TencentARC/MotionCrafter) | 单目 4D 几何+运动重建 | 🟡 Academic Only (自定义; 禁止商用; EU 限制) | xformers, pytorch3d | 🔶 大概率 |
 
 ### VLA / 具身智能
@@ -141,6 +143,7 @@
 | [open-gigaai/giga-brain-0](https://github.com/open-gigaai/giga-brain-0) | VLA 3.5B 推理 | 🟢 Apache-2.0 | — (纯 PyTorch) | 🔶 大概率 |
 | [microsoft/VITRA](https://github.com/microsoft/VITRA) | Egocentric-hand VLA (PaliGemma2-3B + DiT 动作头; 人类视频→动作) | 🟢 代码 MIT；`VITRA-VLA-3B` free MIT，`paligemma2-3b` base gated（已接受） | — (纯 PyTorch/transformers==4.47.1, AOTriton SDPA) | ✅ 已验证（supported-smoke，完整推理 action `[1,16,192]`，零源码 patch, MI300X） |
 | [Renforce-Dynamics/MuGS](https://github.com/Renforce-Dynamics/MuGS) | MuJoCo 物理 + 3DGS 混合渲染（照片级 VLA 仿真） | 🟢 MIT | **amd_gsplat**, mujoco (EGL) | ✅ 已验证（GaussianSensor：MuJoCo 前景 + 3DGS 背景 + 分割 alpha 合成，零源码 patch, MI300X） |
+| [OpenSenseNova/SenseNova-RoboRSI](https://github.com/OpenSenseNova/SenseNova-RoboRSI) | 具身 VLM（RoboRSI-27B-Preview：场景理解 + 操作规划） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (TP=2, bf16) | ✅ 已验证（零源码 patch；图像 + 指令给出正确物体识别与 5 步抓取计划 ~33s, MI300X；仿真 benchmark 镜像未测） |
 
 ### 灵巧操作 / 人类示范重定向 (Dexterous Manipulation / Human-to-Humanoid)
 
