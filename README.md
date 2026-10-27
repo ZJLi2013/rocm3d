@@ -144,6 +144,8 @@
 | [microsoft/VITRA](https://github.com/microsoft/VITRA) | Egocentric-hand VLA (PaliGemma2-3B + DiT 动作头; 人类视频→动作) | 🟢 代码 MIT；`VITRA-VLA-3B` free MIT，`paligemma2-3b` base gated（已接受） | — (纯 PyTorch/transformers==4.47.1, AOTriton SDPA) | ✅ 已验证（supported-smoke，完整推理 action `[1,16,192]`，零源码 patch, MI300X） |
 | [Renforce-Dynamics/MuGS](https://github.com/Renforce-Dynamics/MuGS) | MuJoCo 物理 + 3DGS 混合渲染（照片级 VLA 仿真） | 🟢 MIT | **amd_gsplat**, mujoco (EGL) | ✅ 已验证（GaussianSensor：MuJoCo 前景 + 3DGS 背景 + 分割 alpha 合成，零源码 patch, MI300X） |
 | [OpenSenseNova/SenseNova-RoboRSI](https://github.com/OpenSenseNova/SenseNova-RoboRSI) | 具身 VLM（RoboRSI-27B-Preview：场景理解 + 操作规划） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (TP=2, bf16) | ✅ 已验证（零源码 patch；图像 + 指令给出正确物体识别与 5 步抓取计划 ~33s, MI300X；仿真 benchmark 镜像未测） |
+| [xinxinliu-ai/AgenticRoboRL](https://github.com/xinxinliu-ai/AgenticRoboRL) | Agentic planner 后训练（Qwen3.5-9B planner 调 π0.5，RPent / LIBERO-PRO） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (`--attention-backend TRITON_ATTN`); FSDP2 + flash-linear-attention | ✅ 已验证（零源码 patch；rl-v006 20 格子集 14/20，论文 71.0%；RL 一步更新跑通，MI300X） |
+| [suniique/assembly-nist](https://github.com/suniique/assembly-nist) | 无示教 RL 装配（PPO，Franka × NIST 装配板 20 任务，MuJoCo） | 🟢 MIT | — (纯 PyTorch；物理为 CPU MuJoCo + C++ SDF 插件) | ✅ 已验证（零源码 patch；发布 checkpoint 98.78% / 发布 98.69%；单节点训练 it4000 89.25%，MI300X） |
 
 ### 灵巧操作 / 人类示范重定向 (Dexterous Manipulation / Human-to-Humanoid)
 
