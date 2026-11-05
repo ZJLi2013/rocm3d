@@ -149,6 +149,7 @@
 | [xinxinliu-ai/AgenticRoboRL](https://github.com/xinxinliu-ai/AgenticRoboRL) | Agentic planner 后训练（Qwen3.5-9B planner 调 π0.5，RPent / LIBERO-PRO） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (`--attention-backend TRITON_ATTN`); FSDP2 + flash-linear-attention | ✅ 已验证（零源码 patch；rl-v006 20 格子集 14/20，论文 71.0%；RL 一步更新跑通，MI300X） |
 | [suniique/assembly-nist](https://github.com/suniique/assembly-nist) | 无示教 RL 装配（PPO，Franka × NIST 装配板 20 任务，MuJoCo） | 🟢 MIT | — (纯 PyTorch；物理为 CPU MuJoCo + C++ SDF 插件) | ✅ 已验证（零源码 patch；发布 checkpoint 98.78% / 发布 98.69%；单节点训练 it4000 89.25%，MI300X） |
 | [RLinf/RLinf](https://github.com/RLinf/RLinf) | 人形全身动作跟踪（SuperMimic：可微世界模型 + 策略梯度，Unitree G1 × LAFAN1，MuJoCo Warp） | 🟢 Apache-2.0 | mjlab 1.2.0 + mujoco-warp 3.8.1 on ROCm/warp 1.13（两处兼容修改） | ✅ 已验证（[上游 PR #1767](https://github.com/RLinf/RLinf/pull/1767)；重训 16k update：LAFAN1 40 条 39 / 40、normalized return 0.832，每 update 0.97 s，MI300X） |
+| [nssmd/RoboRSI](https://github.com/nssmd/RoboRSI) | 多 agent 自进化机器人系统（VLM 工具调用解 LIBERO，失败改写成技能） | 🟢 Apache-2.0 | — (本地 Qwen3-VL-8B 服务；LIBERO 仿真) | ✅ 已验证（冻结 LIBERO-PRO Pass-1 120 任务跑完、完整性审计通过 24/120，本地 8B 模型非公开成绩；原始测量不可重算, MI300X） |
 
 ### 灵巧操作 / 人类示范重定向 (Dexterous Manipulation / Human-to-Humanoid)
 
@@ -191,6 +192,7 @@
 | [mschneider456/worldmesh](https://github.com/mschneider456/worldmesh) | Mesh 条件扩散可导航多房间场景 (ECCV'26) | 🟡 Other (自定义) | 🔶 ROCm 切片已验证（procedural layout + Apple Depth Pro 深度, MI300X） | tiny-cuda-nn / kaolin / nvdiffrast (NV-only) + 人在环 Gradio 掩码 + gated FLUX.2/sam3 |
 | [nepfaff/scenesmith](https://github.com/nepfaff/scenesmith) | Agent 驱动的仿真就绪 3D 场景生成 | 🟢 MIT | 🔶 16/18 依赖 + `import scenesmith` OK（torch 2.8 ROCm 6.4） | bpy / mathutils 仅随 Blender 提供，pip 装不上 |
 | [Genesis-Embodied-AI/RoboGen](https://github.com/Genesis-Embodied-AI/RoboGen) | 生成式机器人任务 / 技能学习 | 🟢 Apache-2.0 | 🔶 核心依赖 + PyBullet 仿真 OK（PyBullet 走 CPU） | OMPL 预编译 wheel 链接 404，运动规划未验证 |
+| [NVlabs/ASPIRE](https://github.com/NVlabs/ASPIRE) | LLM agent 迭代写机器人技能代码（LIBERO-Pro，SAM3 感知） | 🟢 Apache-2.0 | 🔶 栈跑通（SAM3 GPU + osmesa 渲染, MI300X），官方示例 1/2 成功 | `open_middle_drawer` 转腕失败（CPU IK，NVIDIA 上未核实）；未与论文数字比较 |
 
 ### ❌ NVIDIA-only (不可迁移)
 

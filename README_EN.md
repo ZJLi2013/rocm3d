@@ -147,6 +147,7 @@ The tables are generated from the maintainer's reproduction records; please do n
 | [xinxinliu-ai/AgenticRoboRL](https://github.com/xinxinliu-ai/AgenticRoboRL) | Agentic planner post-training (Qwen3.5-9B planner calling π0.5, RPent / LIBERO-PRO) | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (`--attention-backend TRITON_ATTN`); FSDP2 + flash-linear-attention | ✅ Verified (zero source patch; rl-v006 14/20 on a 20-cell subset, paper 71.0%; one RL update step runs, MI300X) |
 | [suniique/assembly-nist](https://github.com/suniique/assembly-nist) | Demo-free RL assembly (PPO, Franka × NIST board, 20 tasks, MuJoCo) | 🟢 MIT | — (pure PyTorch; physics on CPU MuJoCo + C++ SDF plugin) | ✅ Verified (zero source patch; released checkpoint 98.78% vs 98.69% reported; single-node training to it4000 at 89.25%, MI300X) |
 | [RLinf/RLinf](https://github.com/RLinf/RLinf) | Humanoid whole-body motion tracking (SuperMimic: differentiable world model + policy gradient, Unitree G1 × LAFAN1, MuJoCo Warp) | 🟢 Apache-2.0 | mjlab 1.2.0 + mujoco-warp 3.8.1 on ROCm/warp 1.13 (two compatibility changes) | ✅ Verified ([upstream PR #1767](https://github.com/RLinf/RLinf/pull/1767); retrained 16k updates: 39 / 40 LAFAN1 clips, normalized return 0.832, 0.97 s per update, MI300X) |
+| [nssmd/RoboRSI](https://github.com/nssmd/RoboRSI) | Multi-agent self-evolving robot system (VLM tool calls solve LIBERO; failures rewritten as skills) | 🟢 Apache-2.0 | — (local Qwen3-VL-8B server; LIBERO simulation) | ✅ Verified (frozen LIBERO-PRO Pass-1, 120 tasks completed, integrity audit pass 24/120 with a local 8B model, not the public score; raw measurements not recomputable, MI300X) |
 
 ### Dexterous Manipulation / Human-to-Robot
 
@@ -191,6 +192,7 @@ The tables are generated from the maintainer's reproduction records; please do n
 | [mschneider456/worldmesh](https://github.com/mschneider456/worldmesh) | Mesh-conditioned diffusion navigable multi-room scene (ECCV'26) | 🟡 Other (custom) | 🔶 ROCm slice verified (procedural layout + Apple Depth Pro depth, MI300X) | tiny-cuda-nn / kaolin / nvdiffrast (NV-only) + human-in-loop Gradio masking + gated FLUX.2/sam3 |
 | [nepfaff/scenesmith](https://github.com/nepfaff/scenesmith) | Agent-driven simulation-ready 3D scene generation | 🟢 MIT | 🔶 16/18 deps + `import scenesmith` OK (torch 2.8, ROCm 6.4) | bpy / mathutils ship only with Blender, not pip-installable |
 | [Genesis-Embodied-AI/RoboGen](https://github.com/Genesis-Embodied-AI/RoboGen) | Generative robot task / skill learning | 🟢 Apache-2.0 | 🔶 Core deps + PyBullet sim OK (PyBullet runs on CPU) | OMPL prebuilt wheel URL 404, motion planning unverified |
+| [NVlabs/ASPIRE](https://github.com/NVlabs/ASPIRE) | LLM agent iteratively writing robot skill code (LIBERO-Pro, SAM3 perception) | 🟢 Apache-2.0 | 🔶 Stack runs (SAM3 on GPU + osmesa rendering, MI300X); 1/2 official examples succeed | `open_middle_drawer` wrist turn fails (CPU IK; not checked on NVIDIA); not compared with paper numbers |
 
 ### ❌ NVIDIA-only (cannot migrate)
 
