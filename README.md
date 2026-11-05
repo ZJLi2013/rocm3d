@@ -22,6 +22,8 @@
 
 以下 repo 已在 AMD MI300X + ROCm 上验证通过。
 
+表格由维护者的复现记录自动生成，请不要直接修改；更正请开 issue。标 † 的行是自动生成之前手写的早期记录，不再更新；该 repo 重新复现后，由生成的行替换。
+
 > **License 说明**
 > - 🟢 **Permissive**: 代码与模型均为宽松许可 (MIT / Apache-2.0)，可自由用于 ROCm 迁移与推广
 > - 🟡 **Non-Commercial / Custom**: 代码或模型含 NC / 自定义条款，仅限研究用途
@@ -34,9 +36,9 @@
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
-| [ZJLi2013/GroundingDINO](https://github.com/ZJLi2013/GroundingDINO/tree/rocm_supported) | Open-vocabulary detection | 🟢 Apache-2.0 | HIP `MsDeformAttn` forward, torch.library custom op | ✅ 已验证（ROCm inference；GroundingDINO→SAM e2e PASS） |
+| [ZJLi2013/GroundingDINO](https://github.com/ZJLi2013/GroundingDINO/tree/rocm_supported) † | Open-vocabulary detection | 🟢 Apache-2.0 | HIP `MsDeformAttn` forward, torch.library custom op | ✅ 已验证（ROCm inference；GroundingDINO→SAM e2e PASS） |
 | [facebookresearch/sam2](https://github.com/facebookresearch/sam2) | Image/video segmentation | 🟢 Apache-2.0 | — (SAM2 image predictor) | ✅ 已验证（`sam2.1_hiera_base_plus.pt`, official `truck.jpg` image example） |
-| [IDEA-Research/Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2) | Grounded detection + SAM2 segmentation/tracking | 🟢 Apache-2.0 + upstream component licenses | SAM2, HF GroundingDINO | ✅ 已验证（HF GroundingDINO tiny + SAM2.1 base-plus，4 annotations；推荐后续 base） |
+| [IDEA-Research/Grounded-SAM-2](https://github.com/IDEA-Research/Grounded-SAM-2) † | Grounded detection + SAM2 segmentation/tracking | 🟢 Apache-2.0 + upstream component licenses | SAM2, HF GroundingDINO | ✅ 已验证（HF GroundingDINO tiny + SAM2.1 base-plus，4 annotations；推荐后续 base） |
 | [IDEA-Research/Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) | GroundingDINO + SAM legacy pipeline | 🟢 Apache-2.0 | GroundingDINO ROCm fork, SAM vit_b | ✅ 已验证（legacy image e2e 输出 `truck` mask；作为兼容后备） |
 | [DCDmllm/InstructSAM](https://github.com/DCDmllm/InstructSAM) | Instruction-driven instance segmentation (Qwen3-VL + SAM3) | ❓ 无 LICENSE 文件；`facebook/sam3` gated weights | flash-attn (FA2 Triton), SAM3 | ✅ 已验证（InstructSAM-2B + `fused_attention`，`truck.jpg` 输出 10 masks，peak 6016MB） |
 | [google-deepmind/tapnet](https://github.com/google-deepmind/tapnet) (torch port [ibaiGorordo/Tapir-Pytorch-Inference](https://github.com/ibaiGorordo/Tapir-Pytorch-Inference)) | 点轨迹跟踪 (TAPIR; 人类视频 pipeline 组件) | 🟢 Apache-2.0 | — (纯 PyTorch, 公开权重) | ✅ 已验证（supported-smoke, torch2.9.1+rocm7.2.1, 零 patch, MI300X） |
@@ -47,14 +49,14 @@
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
-| [Tencent/Hunyuan3D-2](https://github.com/Tencent/Hunyuan3D-2) | Image-to-3D + PBR | 🟡 Tencent Community (自定义; EU/UK 限制; >1M MAU 需审批) | — (纯 PyTorch, AOTriton FA) | ✅ 已验证 |
-| [wgsxm/PartCrafter](https://github.com/wgsxm/PartCrafter) | 部件感知 3D 生成 | 🟢 MIT | pytorch3d | ✅ 已验证 |
-| [openai/shap-e](https://github.com/openai/shap-e) | 文本/图像转 3D | 🟢 MIT | — | ✅ 已验证 |
+| [Tencent/Hunyuan3D-2](https://github.com/Tencent/Hunyuan3D-2) † | Image-to-3D + PBR | 🟡 Tencent Community (自定义; EU/UK 限制; >1M MAU 需审批) | — (纯 PyTorch, AOTriton FA) | ✅ 已验证 |
+| [wgsxm/PartCrafter](https://github.com/wgsxm/PartCrafter) † | 部件感知 3D 生成 | 🟢 MIT | pytorch3d | ✅ 已验证 |
+| [openai/shap-e](https://github.com/openai/shap-e) † | 文本/图像转 3D | 🟢 MIT | — | ✅ 已验证 |
 | [microsoft/TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Image-to-3D (O-Voxel, 4B) | 🟢 MIT | flash-attn, flex_gemm, cumesh, nvdiffrast | ✅ 已验证（[ROCm fork](https://github.com/ZJLi2013/TRELLIS.2/tree/rocm)） |
 | [TencentARC/Pixal3D](https://github.com/TencentARC/Pixal3D) | Pixel-Aligned Image-to-3D (TRELLIS.2) | ❓ 无 LICENSE 文件 | flash-attn, flex_gemm, cumesh, nvdiffrast, natten→SDPA shim | ✅ 已验证（8.7MB GLB, ~198s, MI300X） |
 | [VAST-AI-Research/AniGen](https://github.com/VAST-AI-Research/AniGen) | 动画就绪 3D 资产 (TRELLIS) | ❓ 无 LICENSE 文件 | spconv_rocm, pytorch3d, nvdiffrast, flash-attn | ✅ 已验证（sparse encoder GPU PASS, MI300X） |
 | [liuwei283/RealWonder](https://github.com/liuwei283/RealWonder) | 3D 场景生成 | 🟡 CC BY-NC-SA 4.0 | spconv_rocm, pytorch3d, flash-attn | ✅ 已验证（sparse encoder GPU PASS, MI300X） |
-| [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) | Part-aware 3D mesh generation | ❓ 待确认 | diffusers, transformers, fpsample, warp fallback | ✅ 已验证（jellyfish_car 8 parts + combined GLB, MI300X） |
+| [Roblox/cube/tree/main/cubepart](https://github.com/Roblox/cube/tree/main/cubepart) † | Part-aware 3D mesh generation | ❓ 待确认 | diffusers, transformers, fpsample, warp fallback | ✅ 已验证（jellyfish_car 8 parts + combined GLB, MI300X） |
 | [Nelipot-Lee/SegviGen](https://github.com/Nelipot-Lee/SegviGen) | 3D 部件分割 | 🟢 MIT | flash-attn, flex_gemm, cumesh | ✅ 已验证（66K verts, ~107s） |
 | [Luo-Yihao/FaithC](https://github.com/Luo-Yihao/FaithC) | 3D mesh tokenizer / Faithful Contouring (CVPR'26 Oral) | 🟢 Apache-2.0 | atom3d JIT, FaithC `_C` (hipify kernels.cu), torch_scatter shim | ✅ 已验证（demo.py encode→decode, GLB 输出, 0.32s, MI300X） |
 | [kasothaphie/GenRecon](https://github.com/kasothaphie/GenRecon) | 多视图 3D 场景重建 (TRELLIS.2 族; O-Voxel 表示) | 🟢 MIT（权重公开：TUM kaldir + TRELLIS.2 base） | o_voxel `_C` (auto-hipify, GPU_ARCHS=gfx942), flash-attn / flex_gemm / cumesh (TRELLIS.2 recipe); nvdiffrast/nvdiffrec 仅 CUDA | ✅ 已验证（O-Voxel core supported-demo：mesh2ovox→1.6M-voxel→ovox2mesh 彩色 ply + GPU turntable, 零 C++/CUDA 改动, MI300X；全场景 e2e defer-heavy） |
@@ -63,27 +65,27 @@
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
-| [naver/dust3r](https://github.com/naver/dust3r) | 稠密立体重建 | 🟡 CC BY-NC-SA 4.0 | croco (ext build) | ✅ 已验证 |
-| [facebookresearch/fast3r](https://github.com/facebookresearch/fast3r) | 快速 3D 重建 | 🟡 FAIR Non-Commercial | croco (ext build) | ✅ 已验证 |
-| [facebookresearch/vggt](https://github.com/facebookresearch/vggt) | 视觉定位 | 🟡 Meta VGGT License (自定义) | — | ✅ 已验证 |
-| [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) | 地图重建 | 🟢 Apache-2.0 | — | ✅ 已验证 |
+| [naver/dust3r](https://github.com/naver/dust3r) † | 稠密立体重建 | 🟡 CC BY-NC-SA 4.0 | croco (ext build) | ✅ 已验证 |
+| [facebookresearch/fast3r](https://github.com/facebookresearch/fast3r) † | 快速 3D 重建 | 🟡 FAIR Non-Commercial | croco (ext build) | ✅ 已验证 |
+| [facebookresearch/vggt](https://github.com/facebookresearch/vggt) † | 视觉定位 | 🟡 Meta VGGT License (自定义) | — | ✅ 已验证 |
+| [facebookresearch/map-anything](https://github.com/facebookresearch/map-anything) † | 地图重建 | 🟢 Apache-2.0 | — | ✅ 已验证 |
 | [robbyant/lingbot-map](https://github.com/robbyant/lingbot-map) | 稠密 3D 重建 (VGGT-like) | 🟢 Apache-2.0 | — (AOTriton SDPA) | ✅ 已验证（church 286 帧 2.5 FPS） |
 | [ChenYutongTHU/GGPT](https://github.com/ChenYutongTHU/GGPT) | Multiview 3D 重建 (CVPR'26, PTv3 + VGGT + SfM) | 🟢 MIT | spconv_rocm, flash-attn (ROCm fork), torch_scatter shim | ✅ 已验证（68MB PLY 点云, ~11min, MI300X） |
 | [colmap/gluemap](https://github.com/colmap/gluemap) | SfM / global mapping (VGGT backend) | ❓ 待确认 | pygluemap (Ceres/pybind), VGGT, CPU pycolmap | ✅ 已验证（32 tests PASS；VGGT coarse demo 5 images, 22.69s） |
 | [princeton-vl/DROID-SLAM](https://github.com/princeton-vl/DROID-SLAM) | 单目/双目/RGB-D 视觉 SLAM (NeurIPS'21) | 🟢 BSD-3 | droid_backends (hipify kernels, altcorr 原子头可移植化), torch-scatter-rocm | ✅ 已验证（[上游 PR #171](https://github.com/princeton-vl/DROID-SLAM/pull/171) 单文件；build + 220 帧 ETH3D sfm_bench demo, ~15 it/s, MI300X） |
-| [princeton-vl/lietorch](https://github.com/princeton-vl/lietorch) | SE3/Sim3 李群 PyTorch 后端 (SLAM/BA 基础库) | 🟢 BSD-3 | lietorch_gpu.cu (hipify, `.template` 消歧) | ✅ 已验证（DROID-SLAM 的李群后端；[上游 PR #53](https://github.com/princeton-vl/lietorch/pull/53) 单文件, v0.3, MI300X） |
+| [princeton-vl/lietorch](https://github.com/princeton-vl/lietorch) † | SE3/Sim3 李群 PyTorch 后端 (SLAM/BA 基础库) | 🟢 BSD-3 | lietorch_gpu.cu (hipify, `.template` 消歧) | ✅ 已验证（DROID-SLAM 的李群后端；[上游 PR #53](https://github.com/princeton-vl/lietorch/pull/53) 单文件, v0.3, MI300X） |
 | [kaichen-z/PAGE4D](https://github.com/kaichen-z/PAGE4D) | 4D 感知 (VGGT) | 🟢 Apache-2.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（poses+depth+points, ~70s） |
 | [Pointcept/PointTransformerV3](https://github.com/Pointcept/PointTransformerV3) | 点云 Backbone (CVPR'24 Oral) | 🟢 MIT | spconv_rocm, flash-attn (FA2 Triton), torch_scatter shim | ✅ 已验证（ModelNet40 40/40 类 PASS, MI300X） |
-| [apple/ml-sharp](https://github.com/apple/ml-sharp) | 3D 重建 | 🟡 Apple Sample Code | gsplat | ✅ 已验证 |
+| [apple/ml-sharp](https://github.com/apple/ml-sharp) † | 3D 重建 | 🟡 Apple Sample Code | gsplat | ✅ 已验证 |
 | [LiteReality/LiteReality](https://github.com/LiteReality/LiteReality) | Graphics-ready 3D 场景重建 (RGB-D, NeurIPS'25) | ❓ 待确认 | GroundingDINO ROCm fork (HIP MSDA), SAM ViT-H, Qwen3-VL-8B | ✅ 已验证（感知核心 supported-demo：GroundingDINO HIP+SAM 119 检测；Qwen3-VL-8B VLM supported-smoke, MI300X；Blender Cycles 渲染 CPU 已验证，GPU(HIP) 在 CDNA/gfx942 受限、RDNA4 为已知 kernel-load bug；~200GB 素材库 defer-heavy） |
 
 ### 深度估计 / 扩散式几何
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
-| [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) | 单目深度 + 3DGS | 🟢 Apache-2.0 | xformers, gsplat | ✅ 已验证 |
+| [ByteDance-Seed/Depth-Anything-3](https://github.com/ByteDance-Seed/Depth-Anything-3) † | 单目深度 + 3DGS | 🟢 Apache-2.0 | xformers, gsplat | ✅ 已验证 |
 | [NVlabs/FoundationStereo](https://github.com/NVlabs/FoundationStereo) | 立体深度估计 (Transformer) | 🔴 **NVIDIA License (非商用)** — study only | xformers | ✅ 已验证（540x960 推理, 374.5M params, MI300X） |
-| [nv-tlabs/Difix3D](https://github.com/nv-tlabs/Difix3D) | 3D 扩散修复 | 🟡 NVIDIA License + Stability AI (非商用) | xformers | ✅ 已验证 |
+| [nv-tlabs/Difix3D](https://github.com/nv-tlabs/Difix3D) † | 3D 扩散修复 | 🟡 NVIDIA License + Stability AI (非商用) | xformers | ✅ 已验证 |
 | [Duisterhof/modality-forcing](https://github.com/Duisterhof/modality-forcing) | 单 DiT 联合 image-depth 生成 (FLUX.2; joint/i2d/d2i 三模态) | 🟡 代码 Apache-2.0; 模型权重 CC BY-NC 4.0 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（三模态 512², text→RGB+depth+点云, 零改动, MI300X） |
 | [haoz19/world-tracing](https://github.com/haoz19/world-tracing) | Image→多层几何点云 (scene/object/dynamic; flow-matching diffusion, Wan2.1 init) | 🟡 代码+权重 CC BY-NC-ND 4.0（权重 gated 手动审批） | — (纯 PyTorch, AOTriton SDPA; DINOv2/MoGe encoder; flash-attn 可选) | ✅ 已验证（scene `r69l` 840×840, 4.23M-point 彩色点云 + 360° turntable, ~79s, MI300X；object/dynamic 权重 gated 待批） |
 
@@ -96,7 +98,7 @@
 | [nv-tlabs/TokenGS](https://github.com/nv-tlabs/TokenGS) | 前馈式 3DGS 预测 | 🟢 Apache-2.0 | **amd_gsplat**, fused-ssim | ✅ 已验证（1.25s/scene, MI300X） |
 | [ziplab/TriSplat](https://github.com/ziplab/TriSplat) | Feed-forward mesh / triangle splatting | 🟢 MIT | diff-gaussian-rasterization-w-pose, diff-triangle-rasterization, simple-knn, CroCo curope | ✅ 已验证（ROCm native extensions；LLFF room mesh export） |
 | [VAST-AI-Research/TripoSplat](https://github.com/VAST-AI-Research/TripoSplat) | Single-image 3D Gaussian generation | 🟢 MIT | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（20-step / 262144 Gaussian `.ply/.splat`，视觉检查通过，MI300X） |
-| [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) | 3DGS（ROCm 分支） | 🟡 Inria/MPII 非商用 | diff-gaussian-rasterization | ✅ 已验证 |
+| [expenses/gaussian-splatting](https://github.com/expenses/gaussian-splatting) † | 3DGS（ROCm 分支） | 🟡 Inria/MPII 非商用 | diff-gaussian-rasterization | ✅ 已验证 |
 | [Fictionarry/AmbiSuR](https://github.com/Fictionarry/AmbiSuR) | 3DGS 表面重建 (ICML'26, DA3 depth) | ❓ 无 LICENSE 文件 | diff-plane-rasterization (hipcc), simple-knn, pytorch3d | ✅ 已验证（ROCmBuildExtension 8 fixes, MI300X） |
 | [AaronNZH/LeGS](https://github.com/AaronNZH/LeGS) | 3DGS RL 密度控制 (ICML'26) | ❓ 无 LICENSE 文件 | diff-gaussian-rasterization_fastgs (hipcc), simple-knn, fused-ssim | ✅ 已验证（100 iter 105 it/s, MI300X） |
 
@@ -104,24 +106,24 @@
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
-| [fudan-zvg/4d-gaussian-splatting](https://github.com/fudan-zvg/4d-gaussian-splatting) | 4D 高斯 | 🟢 MIT | diff-gaussian-rasterization, simple-knn | ✅ 脚本生成 |
-| [VITA-Group/Anything-3D](https://github.com/VITA-Group/Anything-3D) | 万物转 3D | 🟢 MIT | — | ✅ 脚本生成 |
-| [any4d](https://github.com/) | 4D 生成 | ❓ | — | ✅ 脚本生成 |
-| [DimensionX](https://github.com/) | 多维生成 | ❓ | — | ✅ 脚本生成 |
-| [nv-tlabs/FLARE](https://github.com/nv-tlabs/FLARE) | 人脸生成 | ❓ (repo 404) | pytorch3d | ✅ 脚本生成 |
-| [Gen3C](https://github.com/) | 3D 一致性生成 | ❓ | — | ✅ 脚本生成 |
-| [mv-inverse](https://github.com/) | 多视角逆向 | ❓ | — | ✅ 脚本生成 |
-| [jiangzhongshi/RecamMaster](https://github.com/jiangzhongshi/RecamMaster) | 相机重渲染 | ❓ (repo 404) | — | ✅ 脚本生成 |
+| [fudan-zvg/4d-gaussian-splatting](https://github.com/fudan-zvg/4d-gaussian-splatting) † | 4D 高斯 | 🟢 MIT | diff-gaussian-rasterization, simple-knn | ✅ 脚本生成 |
+| [VITA-Group/Anything-3D](https://github.com/VITA-Group/Anything-3D) † | 万物转 3D | 🟢 MIT | — | ✅ 脚本生成 |
+| [any4d](https://github.com/) † | 4D 生成 | ❓ | — | ✅ 脚本生成 |
+| [DimensionX](https://github.com/) † | 多维生成 | ❓ | — | ✅ 脚本生成 |
+| [nv-tlabs/FLARE](https://github.com/nv-tlabs/FLARE) † | 人脸生成 | ❓ (repo 404) | pytorch3d | ✅ 脚本生成 |
+| [Gen3C](https://github.com/) † | 3D 一致性生成 | ❓ | — | ✅ 脚本生成 |
+| [mv-inverse](https://github.com/) † | 多视角逆向 | ❓ | — | ✅ 脚本生成 |
+| [jiangzhongshi/RecamMaster](https://github.com/jiangzhongshi/RecamMaster) † | 相机重渲染 | ❓ (repo 404) | — | ✅ 脚本生成 |
 
 ### 视频生成 / 世界模型
 
 | Repo | 领域 | 许可 | 关键 ROCm 库 | 状态 |
 |------|------|------|-------------|------|
 | [SkyworkAI/Matrix-Game](https://github.com/SkyworkAI/Matrix-Game) | 视频世界模型 | 🟢 MIT | flash-attn → **AITER CK** | ✅ 已验证（PR ready） |
-| [lucas-maes/le-wm](https://github.com/lucas-maes/le-wm) | 学习型世界模型 | 🟢 MIT | — (device-agnostic) | ✅ [已验证](https://github.com/lucas-maes/le-wm/issues/15)（推理 + 8-GPU 训练） |
+| [lucas-maes/le-wm](https://github.com/lucas-maes/le-wm) † | 学习型世界模型 | 🟢 MIT | — (device-agnostic) | ✅ [已验证](https://github.com/lucas-maes/le-wm/issues/15)（推理 + 8-GPU 训练） |
 | [H-EmbodVis/HyDRA](https://github.com/H-EmbodVis/HyDRA) | 混合记忆视频世界模型 | ❓ 无 LICENSE 文件; 模型依赖 Wan2.1 | flash-attn (FA2 Triton) | ✅ 已验证（4 videos） |
 | [ABU121111/DreamWorld](https://github.com/ABU121111/DreamWorld) | 视频生成 (Wan2.1 + VGGT) | ❓ 无 LICENSE 文件 | — | ✅ 已验证（2 videos, ~39min） |
-| [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) | 图像→3D 世界 (Wan2.1 + DA3 + GS) | 🔴 代码 Apache-2.0; **模型权重 NVIDIA License (非商用, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ 已验证（zoom-in/out 视频, 14B, ~2h, MI300X） |
+| [nv-tlabs/Lyra-2](https://github.com/nv-tlabs/lyra/tree/main/Lyra-2) † | 图像→3D 世界 (Wan2.1 + DA3 + GS) | 🔴 代码 Apache-2.0; **模型权重 NVIDIA License (非商用, gated)** | flash-attn, **TE→SDPA**, megatron stub | ✅ 已验证（zoom-in/out 视频, 14B, ~2h, MI300X） |
 | [Sim2Reason/Sim2Reason](https://github.com/Sim2Reason/Sim2Reason) | LLM 物理推理 (VERL + Qwen2.5) | ❓ 无 LICENSE 文件; verl_v4 子目录 Apache-2.0 | vLLM→HF generate, liger-kernel | ✅ 已验证（JEEBench 123q, ~100min, MI300X） |
 | [Tencent-Hunyuan/Hy-Memory](https://github.com/Tencent-Hunyuan/Hy-Memory) | Agent 长期记忆（Hy-Memory-30B-A3B 抽取 + SDK 检索） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm | ✅ 已验证（零源码 patch；单卡 BF16 服务 ~112 tok/s，SDK 记忆写入与检索端到端, MI300X） |
 | [OpenImagingLab/AnyRecon](https://github.com/OpenImagingLab/AnyRecon) | 任意视角 3D 重建 (Wan2.1 14B + DiffSynth) | ❓ 无 LICENSE 文件 | — (纯 PyTorch, AOTriton SDPA) | ✅ 已验证（chair 视频 5.0MB, ~7.4min, MI300X） |
@@ -214,6 +216,6 @@ rocm3d/
 | 你想新增/修改… | 更新这里 |
 |---|---|
 | ROCm 库映射（新增 repo 支持） | [`.cursor/skills/rocm-lib-compat/SKILL.md`](.cursor/skills/rocm-lib-compat/SKILL.md) |
-| 已支持的 repo 列表（上方表格） | 本 README.md |
+| 已支持的 repo 列表（上方表格） | 自动生成，不直接改；开 issue |
 
 
