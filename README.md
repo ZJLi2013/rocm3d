@@ -146,6 +146,7 @@
 | [OpenSenseNova/SenseNova-RoboRSI](https://github.com/OpenSenseNova/SenseNova-RoboRSI) | 具身 VLM（RoboRSI-27B-Preview：场景理解 + 操作规划） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (TP=2, bf16) | ✅ 已验证（零源码 patch；图像 + 指令给出正确物体识别与 5 步抓取计划 ~33s, MI300X；仿真 benchmark 镜像未测） |
 | [xinxinliu-ai/AgenticRoboRL](https://github.com/xinxinliu-ai/AgenticRoboRL) | Agentic planner 后训练（Qwen3.5-9B planner 调 π0.5，RPent / LIBERO-PRO） | 🟢 Apache-2.0 | vLLM ≥ 0.32 ROCm (`--attention-backend TRITON_ATTN`); FSDP2 + flash-linear-attention | ✅ 已验证（零源码 patch；rl-v006 20 格子集 14/20，论文 71.0%；RL 一步更新跑通，MI300X） |
 | [suniique/assembly-nist](https://github.com/suniique/assembly-nist) | 无示教 RL 装配（PPO，Franka × NIST 装配板 20 任务，MuJoCo） | 🟢 MIT | — (纯 PyTorch；物理为 CPU MuJoCo + C++ SDF 插件) | ✅ 已验证（零源码 patch；发布 checkpoint 98.78% / 发布 98.69%；单节点训练 it4000 89.25%，MI300X） |
+| [RLinf/RLinf](https://github.com/RLinf/RLinf) | 人形全身动作跟踪（SuperMimic：可微世界模型 + 策略梯度，Unitree G1 × LAFAN1，MuJoCo Warp） | 🟢 Apache-2.0 | mjlab 1.2.0 + mujoco-warp 3.8.1 on ROCm/warp 1.13（两处兼容修改） | ✅ 已验证（[上游 PR #1767](https://github.com/RLinf/RLinf/pull/1767)；重训 16k update：LAFAN1 40 条 39 / 40、normalized return 0.832，每 update 0.97 s，MI300X） |
 
 ### 灵巧操作 / 人类示范重定向 (Dexterous Manipulation / Human-to-Humanoid)
 
